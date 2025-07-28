@@ -8,6 +8,15 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body.dark {
+      background-color: #111;
+      color: #eee;
+    }
+    .dark .bg-white { background-color: #222 !important; }
+    .dark .bg-gray-100 { background-color: #333 !important; }
+    .dark .bg-gray-50 { background-color: #222 !important; }
+  </style>
 </head>
 <body class="bg-gray-100">
   <div id="root" class="p-2 sm:p-4"></div>
@@ -16,15 +25,15 @@
     const { useState, useEffect, useRef } = React;
 
     const patternColors = {
-      squat: "text-blue-600",
-      hinge: "text-purple-600",
-      push: "text-red-600",
-      pull: "text-green-600",
-      core: "text-yellow-600",
-      hybrid: "text-orange-600"
+      squat: "text-blue-400",
+      hinge: "text-purple-400",
+      push: "text-red-400",
+      pull: "text-green-400",
+      core: "text-yellow-400",
+      hybrid: "text-orange-400"
     };
 
-    // Test workout (nu met unilateral flags)
+    // Test workout (fixed)
     const testWorkout = [
       { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false },
       { name: "Deadlift", reps: 25, pattern: "hinge", unilateral: false },
@@ -36,7 +45,7 @@
       { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false }
     ];
 
-    // Database voor normale workouts
+    // Exercise database
     const exerciseDatabase = {
       beginner: {
         squat: [
@@ -45,7 +54,7 @@
           { name: "Jump Squat", type: "Ballistic", stimulus: 1.8, unilateral: false }
         ],
         hinge: [
-          { name: "Deadlift (sumo/standaard)", type: "Grind", stimulus: 0.8, unilateral: false },
+          { name: "Deadlift (sumo/standard)", type: "Grind", stimulus: 0.8, unilateral: false },
           { name: "B-stance Deadlift", type: "Grind", stimulus: 1.1, unilateral: true },
           { name: "Two-arm Swing", type: "Ballistic", stimulus: 1.1, unilateral: false },
           { name: "Glute Bridge", type: "Grind", stimulus: 1.0, unilateral: false }
@@ -74,7 +83,7 @@
         squat: [
           { name: "Side Lunge / Cossack", type: "Grind", stimulus: 1.5, unilateral: true },
           { name: "Bulgarian Split Squat", type: "Grind", stimulus: 1.5, unilateral: true },
-          { name: "Step-up / Pistol (met box)", type: "Grind", stimulus: 1.6, unilateral: true }
+          { name: "Step-up / Pistol (with box)", type: "Grind", stimulus: 1.6, unilateral: true }
         ],
         hinge: [
           { name: "One-arm Swing", type: "Ballistic", stimulus: 1.2, unilateral: true },
@@ -104,7 +113,6 @@
       }
     };
 
-    // Shuffle helper
     const shuffleArray = (array) => {
       const arr = [...array];
       for (let i = arr.length - 1; i > 0; i--) {
@@ -121,98 +129,49 @@
       const [workout, setWorkout] = useState([]);
       const [history, setHistory] = useState([]);
       const [expandedIndex, setExpandedIndex] = useState(null);
-
-      const [timerRunning, setTimerRunning] = useState(false);
-      const [timerValue, setTimerValue] = useState(0);
-      const timerRef = useRef(null);
-
-      const [patternTotals, setPatternTotals] = useState({});
+      const [darkMode, setDarkMode] = useState(false);
+      const [lastWorkoutExercises, setLastWorkoutExercises] = useState([]);
 
       useEffect(() => {
         const saved = JSON.parse(localStorage.getItem("kbInfernoHistory") || "[]");
         setHistory(saved);
+
+        const theme = localStorage.getItem("theme") || "light";
+        setDarkMode(theme === "dark");
+        document.body.classList.toggle("dark", theme === "dark");
+
+        const last = JSON.parse(localStorage.getItem("kbInfernoLastWorkout") || "[]");
+        setLastWorkoutExercises(last);
       }, []);
 
-      const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, "0")}`;
-      };
-
-      const startTimer = () => {
-        setTimerRunning(true);
-        timerRef.current = setInterval(() => setTimerValue(prev => prev + 1), 1000);
-      };
-
-      const stopTimer = (index = 0) => {
-        clearInterval(timerRef.current);
-        setTimerRunning(false);
-        evaluateTestResult(index, timerValue);
-        setTimerValue(0);
-      };
-
-      const evaluateTestResult = (index, timeInSeconds) => {
-        const updated = [...history];
-        const timeString = formatTime(timeInSeconds);
-
-        if (updated[index].type === "test") {
-          if (timeInSeconds < 20 * 60) {
-            updated[index].note = "Bell omhoog!";
-            alert("Gefeliciteerd! Tijd voor een zwaardere bell.");
-          } else {
-            alert("Blijf deze kettlebell gebruiken tot je onder 20 minuten zit.");
-          }
-        }
-
-        updated[index].time = timeString;
-        setHistory(updated);
-        localStorage.setItem("kbInfernoHistory", JSON.stringify(updated));
-      };
-
-      const saveToHistory = (type, workoutData, patternTotals = {}) => {
-        const now = new Date();
-        const entry = {
-          date: now.toLocaleString(),
-          type,
-          level,
-          totalSU,
-          patterns: patternTotals,
-          exercises: workoutData.map(ex => ({
-            name: ex.name,
-            reps: ex.reps || ex.formattedReps,
-            pattern: ex.pattern,
-            su: ex.su,
-            unilateral: ex.unilateral
-          })),
-          time: null,
-          note: null
-        };
-        const updated = [entry, ...history].slice(0, 5);
-        setHistory(updated);
-        localStorage.setItem("kbInfernoHistory", JSON.stringify(updated));
+      const toggleDarkMode = () => {
+        const newMode = !darkMode;
+        setDarkMode(newMode);
+        document.body.classList.toggle("dark", newMode);
+        localStorage.setItem("theme", newMode ? "dark" : "light");
       };
 
       const generateWorkout = () => {
         if (testMode) {
           setWorkout(testWorkout);
-          setPatternTotals({});
           saveToHistory("test", testWorkout);
+          localStorage.setItem("kbInfernoLastWorkout", JSON.stringify(testWorkout.map(e => e.name)));
         } else {
           const db = exerciseDatabase[level];
           const patterns = Object.keys(db);
           let exercises = [];
           let currentSU = 0;
           let patternCount = {};
-          let patternSum = {};
 
           patterns.forEach(pattern => {
-            const options = db[pattern];
-            const exercise = options[Math.floor(Math.random() * options.length)];
+            const options = db[pattern].filter(opt => !lastWorkoutExercises.includes(opt.name)) || db[pattern];
+            const exercise = options.length ? options[Math.floor(Math.random() * options.length)] : db[pattern][0];
+
             const suForExercise = Math.floor(Math.random() * 41) + 30;
             const reps = Math.round(suForExercise / exercise.stimulus);
+
             currentSU += suForExercise;
             patternCount[pattern] = 1;
-            patternSum[pattern] = suForExercise;
 
             exercises.push({
               ...exercise,
@@ -228,15 +187,17 @@
           while (currentSU < totalSU - 30) {
             const pattern = patterns[Math.floor(Math.random() * patterns.length)];
             if (patternCount[pattern] >= 2) continue;
-            const options = db[pattern];
-            const exercise = options[Math.floor(Math.random() * options.length)];
+
+            const options = db[pattern].filter(opt => !lastWorkoutExercises.includes(opt.name)) || db[pattern];
+            const exercise = options.length ? options[Math.floor(Math.random() * options.length)] : db[pattern][0];
+
             const suForExercise = Math.floor(Math.random() * 41) + 30;
             if (currentSU + suForExercise > totalSU + 10) break;
+
             const reps = Math.round(suForExercise / exercise.stimulus);
 
             currentSU += suForExercise;
             patternCount[pattern] = (patternCount[pattern] || 0) + 1;
-            patternSum[pattern] = (patternSum[pattern] || 0) + suForExercise;
 
             exercises.push({
               ...exercise,
@@ -249,23 +210,48 @@
             });
           }
 
-          setPatternTotals(patternSum);
           setWorkout(shuffleArray(exercises));
-          saveToHistory("workout", exercises, patternSum);
+          saveToHistory("workout", exercises);
+          localStorage.setItem("kbInfernoLastWorkout", JSON.stringify(exercises.map(e => e.name)));
         }
       };
 
+      const saveToHistory = (type, workoutData) => {
+        const now = new Date();
+        const entry = {
+          date: now.toLocaleString(),
+          type,
+          level,
+          totalSU,
+          exercises: workoutData.map(ex => ({
+            name: ex.name,
+            reps: ex.reps || ex.formattedReps,
+            pattern: ex.pattern,
+            su: ex.su,
+            unilateral: ex.unilateral
+          })),
+          time: null,
+          note: null
+        };
+        const updated = [entry, ...history].slice(0, 5);
+        setHistory(updated);
+        localStorage.setItem("kbInfernoHistory", JSON.stringify(updated));
+      };
+
+      const removeLastEntry = () => {
+        if (!history.length) return;
+        if (!confirm("Remove last workout from history?")) return;
+        const updated = history.slice(1);
+        setHistory(updated);
+        localStorage.setItem("kbInfernoHistory", JSON.stringify(updated));
+      };
+
       const resetAll = () => {
-        if (timerRunning) {
-          if (!confirm("Timer loopt nog. Wil je toch resetten?")) return;
-        }
-        if (confirm("Weet je zeker dat je alle gegevens wilt wissen?")) {
-          setWorkout([]);
-          setHistory([]);
-          localStorage.removeItem("kbInfernoHistory");
-          setTimerValue(0);
-          setTimerRunning(false);
-        }
+        if (!confirm("Clear all history and workout?")) return;
+        setWorkout([]);
+        setHistory([]);
+        localStorage.removeItem("kbInfernoHistory");
+        localStorage.removeItem("kbInfernoLastWorkout");
       };
 
       const toggleExpand = (index) => {
@@ -274,9 +260,17 @@
 
       return (
         <div className="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-4 sm:p-6">
-          <h1 className="text-4xl font-extrabold mb-2 text-center bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 bg-clip-text text-transparent">
-            Hellfire
-          </h1>
+          <div className="flex justify-between mb-2">
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 bg-clip-text text-transparent">
+              KB Hellfire
+            </h1>
+            <button
+              onClick={toggleDarkMode}
+              className="px-3 py-1 bg-gray-700 text-white rounded text-sm"
+            >
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </button>
+          </div>
           <p className="text-center mb-4 text-lg bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
             One Bell to Burn Them All, One Calorie at a Time
           </p>
@@ -284,35 +278,20 @@
           {/* Tabs Normal/Test */}
           <div className="flex justify-center mb-4">
             <button
-              onClick={() => {
-                setTestMode(false);
-                setWorkout([]);
-              }}
-              className={`flex-1 px-4 py-2 rounded-l ${
-                !testMode ? "bg-orange-600 text-white" : "bg-gray-300"
-              }`}
+              onClick={() => { setTestMode(false); setWorkout([]); }}
+              className={`flex-1 px-4 py-2 rounded-l ${!testMode ? "bg-orange-600 text-white" : "bg-gray-300"}`}
             >
               Normal Workout
             </button>
             <button
-              onClick={() => {
-                setTestMode(true);
-                setWorkout([]);
-              }}
-              className={`flex-1 px-4 py-2 rounded-r ${
-                testMode ? "bg-orange-600 text-white" : "bg-gray-300"
-              }`}
+              onClick={() => { setTestMode(true); setWorkout([]); }}
+              className={`flex-1 px-4 py-2 rounded-r ${testMode ? "bg-orange-600 text-white" : "bg-gray-300"}`}
             >
               Test Workout
             </button>
           </div>
-          <p className="text-center text-sm text-gray-600 mb-4">
-            {testMode
-              ? "Benchmark: haal <20 min voor bell-upgrade."
-              : "Willekeurige SU-workout gebaseerd op gekozen niveau."}
-          </p>
 
-          {/* Level & SU toggles alleen bij Normal */}
+          {/* Level & SU toggles */}
           {!testMode && (
             <>
               <div className="flex flex-wrap justify-center gap-2 mb-4">
@@ -341,7 +320,6 @@
             </>
           )}
 
-          {/* Generate */}
           <div className="text-center">
             <button
               onClick={generateWorkout}
@@ -351,68 +329,23 @@
             </button>
           </div>
 
-          {/* Workout */}
+          {/* Workout list */}
           {workout.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-xl font-bold mb-2 text-center">
-                {testMode ? "Test Workout" : "Your Workout"}
-              </h2>
-
-              {/* Timer */}
-              <div className="text-center mb-4">
-                {!timerRunning ? (
-                  <button
-                    onClick={startTimer}
-                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
-                  >
-                    Start Timer
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => stopTimer(0)}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
-                  >
-                    Stop Timer ({formatTime(timerValue)})
-                  </button>
-                )}
-              </div>
-
-              {/* SU info */}
-              {!testMode && (
-                <div className="text-center mb-2 text-sm text-gray-600">
-                  {Object.entries(patternTotals).map(([pattern, su]) => (
-                    <span key={pattern} className={`mr-3 ${patternColors[pattern]}`}>
-                      {pattern}: {su} SU
-                    </span>
-                  ))}
-                  <span className="font-bold">Totaal: {totalSU} SU</span>
-                </div>
-              )}
-
-              {testMode && (
-                <p className="text-center text-sm text-gray-500 mb-2">
-                  Geen SU berekend (vaste test)
-                </p>
-              )}
-
-              <ul className="space-y-3">
-                {workout.map((exercise, index) => (
-                  <li key={index} className={`border rounded p-3 bg-gray-50 ${patternColors[exercise.pattern] || ""}`}>
-                    <div className="text-lg font-semibold">
-                      {index + 1}. {exercise.name}
-                    </div>
-                    <div className="text-md font-bold text-gray-800">
-                      {exercise.unilateral
-                        ? `${exercise.reps} reps (${Math.ceil(exercise.reps / 2)} per arm)`
-                        : `${exercise.reps} reps`}
-                      {!testMode && exercise.su && (
-                        <span className="ml-2 text-sm text-gray-600">({exercise.su} SU)</span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ul className="space-y-3 mt-4">
+              {workout.map((exercise, index) => (
+                <li key={index} className={`border rounded p-3 bg-gray-50 ${patternColors[exercise.pattern] || ""}`}>
+                  <div className="text-lg font-semibold">{index + 1}. {exercise.name}</div>
+                  <div className="text-md font-bold text-gray-800">
+                    {exercise.unilateral
+                      ? `${exercise.reps} reps (${Math.ceil(exercise.reps / 2)} per arm)`
+                      : `${exercise.reps} reps`}
+                    {!testMode && exercise.su && (
+                      <span className="ml-2 text-sm text-gray-600">({exercise.su} SU)</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
 
           {/* History */}
@@ -428,27 +361,12 @@
                     >
                       <span>
                         {h.date} – {h.type === "test" ? <span className="text-gray-500 font-semibold">Test</span> : h.level} ({h.totalSU} SU)
-                        {h.time && <span className="ml-2 text-green-600 font-semibold">{h.time}</span>}
-                        {h.note && <span className="ml-2 text-red-600 font-bold">{h.note}</span>}
                       </span>
                       <span>{expandedIndex === i ? "▲" : "▼"}</span>
                     </div>
 
                     {expandedIndex === i && (
                       <div className="mt-2 space-y-2">
-                        {Object.keys(h.patterns || {}).length > 0 && (
-                          <div>
-                            <p className="font-semibold">SU per pattern:</p>
-                            <ul className="list-disc list-inside">
-                              {Object.entries(h.patterns).map(([pattern, su]) => (
-                                <li key={pattern} className={patternColors[pattern]}>
-                                  {pattern}: {su} SU
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
                         <div>
                           <p className="font-semibold">Exercises:</p>
                           <ul className="list-disc list-inside">
@@ -467,13 +385,20 @@
                 ))}
               </ul>
 
-              {/* Reset knop */}
-              <div className="text-center mt-4">
+              {/* Remove last entry */}
+              <div className="text-center mt-3">
+                <button
+                  onClick={removeLastEntry}
+                  className="px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm mr-2"
+                >
+                  Remove Last Entry
+                </button>
+
                 <button
                   onClick={resetAll}
-                  className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm"
+                  className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm"
                 >
-                  Reset History & Workout
+                  Clear All History
                 </button>
               </div>
             </div>
