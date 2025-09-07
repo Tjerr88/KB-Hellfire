@@ -9,13 +9,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body.dark {
-      background-color: #111;
-      color: #eee;
-    }
-    .dark .bg-white { background-color: #222 !important; }
-    .dark .bg-gray-100 { background-color: #333 !important; }
-    .dark .bg-gray-50 { background-color: #222 !important; }
+    body.dark { background-color:#111; color:#eee; }
+    .dark .bg-white { background-color:#222 !important; }
+    .dark .bg-gray-100 { background-color:#333 !important; }
+    .dark .bg-gray-50 { background-color:#222 !important; }
+    .link-pill { display:inline-block; padding:.4rem .6rem; border-radius:.6rem; border:1px solid rgba(0,0,0,.1); }
+    .dark .link-pill { border-color: rgba(255,255,255,.15); }
   </style>
 </head>
 <body class="bg-gray-100">
@@ -33,80 +32,82 @@
       hybrid: "text-orange-400"
     };
 
+    // ✅ Test Workout met links
     const testWorkout = [
-      { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false },
-      { name: "Deadlift", reps: 25, pattern: "hinge", unilateral: false },
-      { name: "Snatch", reps: 50, pattern: "pull", unilateral: true },
-      { name: "Goblet Squat", reps: 35, pattern: "squat", unilateral: false },
-      { name: "One-arm Swing", reps: 60, pattern: "hinge", unilateral: true },
-      { name: "Russian Twist", reps: 40, pattern: "core", unilateral: false },
-      { name: "Clean & Press", reps: 30, pattern: "hybrid", unilateral: true },
-      { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false }
+      { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" },
+      { name: "Deadlift", reps: 25, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=l6gDwf3xC6s" },
+      { name: "Snatch", reps: 50, pattern: "pull", unilateral: true, video: "https://www.youtube.com/watch?v=QsuJ6973OFc" },
+      { name: "Goblet Squat", reps: 35, pattern: "squat", unilateral: false, video: "https://www.youtube.com/shorts/dBnNCOtuGNQ" },
+      { name: "One-arm Swing", reps: 60, pattern: "hinge", unilateral: true, video: "https://www.youtube.com/watch?v=UYBKrK1y6ww" },
+      { name: "Russian Twist", reps: 40, pattern: "core", unilateral: false, video: "https://www.youtube.com/watch?v=7XUglHKRyMo" },
+      { name: "Clean & Press", reps: 30, pattern: "hybrid", unilateral: true, video: "https://www.youtube.com/watch?v=km3f8_rpDdg" },
+      { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" }
     ];
 
+    // 📚 Oefeningen-database conform jouw nieuwe lijst + video-links
     const exerciseDatabase = {
       beginner: {
         squat: [
-          { name: "Goblet Squat", type: "Grind", stimulus: 1.3, unilateral: false },
-          { name: "Single Side Front Squat", type: "Grind", stimulus: 1.3, unilateral: true },
-          { name: "Jump Squat", type: "Ballistic", stimulus: 1.8, unilateral: false }
+          { name: "Goblet Squat", type: "Grind", stimulus: 1.3, unilateral: false, video: "https://www.youtube.com/shorts/dBnNCOtuGNQ" },
+          { name: "Single Side Front Squat", type: "Grind", stimulus: 1.3, unilateral: true, video: "https://www.youtube.com/watch?v=SlPwjU6I9gk" },
+          { name: "Jump Squat", type: "Ballistic", stimulus: 1.8, unilateral: false, video: "https://www.youtube.com/watch?v=v3prQwHewL0" }
         ],
         hinge: [
-          { name: "Deadlift (sumo/standard)", type: "Grind", stimulus: 0.8, unilateral: false },
-          { name: "B-stance Deadlift", type: "Grind", stimulus: 1.1, unilateral: true },
-          { name: "Two-arm Swing", type: "Ballistic", stimulus: 1.1, unilateral: false },
-          { name: "Glute Bridge", type: "Grind", stimulus: 1.0, unilateral: false }
+          { name: "Deadlift (sumo/standard)", type: "Grind", stimulus: 0.8, unilateral: false, video: "https://www.youtube.com/watch?v=xFU5zTZgiyE" },
+          { name: "B-stance Deadlift", type: "Grind", stimulus: 1.1, unilateral: true, video: "https://www.youtube.com/shorts/8-mW9b4WbRo" },
+          { name: "Two-arm Swing", type: "Ballistic", stimulus: 1.1, unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" },
+          { name: "Glute Bridge", type: "Grind", stimulus: 1.0, unilateral: false, video: "https://www.youtube.com/shorts/ULl7xM2yWgo" }
         ],
         push: [
-          { name: "Floor Press", type: "Grind", stimulus: 1.2, unilateral: true },
-          { name: "Half-Kneeling Press", type: "Grind", stimulus: 1.4, unilateral: true },
-          { name: "Push Press", type: "Ballistic", stimulus: 1.3, unilateral: true }
+          { name: "Floor Press", type: "Grind", stimulus: 1.2, unilateral: true, video: "https://www.youtube.com/shorts/1QMCUbRkQFA" },
+          { name: "Half-Kneeling Press", type: "Grind", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/shorts/n0peUzKZ-PU" },
+          { name: "Push Press", type: "Ballistic", stimulus: 1.3, unilateral: true, video: "https://www.youtube.com/watch?v=CCqru4q9RK0" },
+          { name: "Military Press", type: "Grind", stimulus: 1.6, unilateral: true, video: "https://www.youtube.com/shorts/oYubnI4aXD8" }
         ],
         pull: [
-          { name: "Bent-over Row", type: "Grind", stimulus: 1.4, unilateral: true },
-          { name: "Pull-over", type: "Grind", stimulus: 1.2, unilateral: false }
+          { name: "Bent-over Row", type: "Grind", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/shorts/pvRXtyBkO-s" },
+          { name: "Pull-over", type: "Grind", stimulus: 1.2, unilateral: false, video: "https://www.youtube.com/shorts/HEV0UZIlEag" },
+          { name: "Clean", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/shorts/xQb9Tc3iQpI" },
+          { name: "One-arm High Pull", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/watch?v=mP1BHxBeAEM" }
         ],
         core: [
-          { name: "Russian Twist", type: "Ballistic", stimulus: 0.7, unilateral: false },
-          { name: "Half-Kneeling Windmill", type: "Grind", stimulus: 1.2, unilateral: true },
-          { name: "Supine Get-up Sit-up", type: "Grind", stimulus: 1.5, unilateral: true },
-          { name: "Front Rack Hold / Carry", type: "Grind", stimulus: 0.5, unilateral: false }
+          { name: "Russian Twist", type: "Ballistic", stimulus: 0.7, unilateral: false, video: "https://www.youtube.com/watch?v=7XUglHKRyMo" },
+          { name: "Half-Kneeling Windmill", type: "Grind", stimulus: 1.2, unilateral: true, video: "https://www.youtube.com/shorts/BfYW9PI5LS8" },
+          { name: "Supine Get-up Sit-up", type: "Grind", stimulus: 1.5, unilateral: true, video: "https://www.youtube.com/watch?v=dv_nNf43Qck" },
+          { name: "Front Rack Hold / Carry", type: "Grind", stimulus: 0.5, unilateral: false, video: "https://www.youtube.com/watch?v=jumVlXfY1Pc" }
         ],
         hybrid: [
-          { name: "Clean & Squat", type: "Grind", stimulus: 2.5, unilateral: true },
-          { name: "Squat & Press", type: "Ballistic", stimulus: 2.0, unilateral: false }
+          { name: "Clean & Squat", type: "Grind", stimulus: 2.5, unilateral: true, video: "https://www.youtube.com/watch?v=iSkQEUoC22Q" },
+          { name: "Squat & Press", type: "Ballistic", stimulus: 2.0, unilateral: false, video: "https://www.youtube.com/watch?v=7E0o5Hv8TMk" },
+          { name: "Clean & Press", type: "Grind", stimulus: 2.0, unilateral: true, video: "https://www.youtube.com/watch?v=km3f8_rpDdg" },
+          { name: "Clean & Push Press", type: "Ballistic", stimulus: 2.0, unilateral: true, video: "https://www.youtube.com/shorts/HWHJW0ivos8" }
         ]
       },
       advanced: {
         squat: [
-          { name: "Side Lunge / Cossack", type: "Grind", stimulus: 1.5, unilateral: true },
-          { name: "Bulgarian Split Squat", type: "Grind", stimulus: 1.5, unilateral: true },
-          { name: "Step-up / Pistol (with box)", type: "Grind", stimulus: 1.6, unilateral: true }
+          { name: "Side Lunge / Cossack", type: "Grind", stimulus: 1.5, unilateral: true, video: "https://www.youtube.com/watch?v=WG1a97zsGdw" },
+          { name: "Bulgarian Split Squat", type: "Grind", stimulus: 1.5, unilateral: true, video: "https://www.youtube.com/watch?v=JQQpO06hUvI" },
+          { name: "Step-up / Pistol (with box)", type: "Grind", stimulus: 1.6, unilateral: true, video: "https://www.youtube.com/watch?v=0DbaQ490LMs" }
         ],
         hinge: [
-          { name: "One-arm Swing", type: "Ballistic", stimulus: 1.2, unilateral: true },
-          { name: "Hand-to-Hand Swing", type: "Ballistic", stimulus: 1.4, unilateral: false }
+          { name: "One-arm Swing", type: "Ballistic", stimulus: 1.2, unilateral: true, video: "https://www.youtube.com/watch?v=UYBKrK1y6ww" },
+          { name: "Hand-to-Hand Swing", type: "Ballistic", stimulus: 1.4, unilateral: false, video: "https://www.youtube.com/shorts/lQqR4wzdMak" }
         ],
         push: [
-          { name: "Military Press", type: "Grind", stimulus: 1.6, unilateral: true },
-          { name: "Top-Down Press", type: "Grind", stimulus: 2.2, unilateral: true },
-          { name: "Push Jerk / VPP", type: "Ballistic", stimulus: 1.4, unilateral: true }
+          { name: "Top-Down Press", type: "Grind", stimulus: 2.2, unilateral: true, video: "https://www.youtube.com/watch?v=a9zEt8d-DYU" },
+          { name: "Push Jerk / VPP", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/shorts/5lSuYCma88w" }
         ],
         pull: [
-          { name: "Renegade Row", type: "Grind", stimulus: 1.3, unilateral: true },
-          { name: "One-arm High Pull", type: "Ballistic", stimulus: 1.4, unilateral: true },
-          { name: "Clean", type: "Ballistic", stimulus: 1.4, unilateral: true },
-          { name: "Snatch", type: "Ballistic", stimulus: 1.6, unilateral: true }
+          { name: "Renegade Row", type: "Grind", stimulus: 1.3, unilateral: true, video: "https://www.youtube.com/watch?v=7l03NoMzGp4" },
+          { name: "Snatch", type: "Ballistic", stimulus: 1.6, unilateral: true, video: "https://www.youtube.com/watch?v=QsuJ6973OFc" }
         ],
         core: [
-          { name: "Turkish Get-up", type: "Grind", stimulus: 3.5, unilateral: true, special: "tgu" },
-          { name: "Windmill", type: "Grind", stimulus: 1.8, unilateral: true }
+          { name: "Turkish Get-up", type: "Grind", stimulus: 3.5, unilateral: true, special: "tgu", video: "https://www.youtube.com/watch?v=sgd8n917Zv0" },
+          { name: "Windmill", type: "Grind", stimulus: 1.8, unilateral: true, video: "https://www.youtube.com/shorts/EZWHnzAjctU" }
         ],
         hybrid: [
-          { name: "Clean & Press", type: "Grind", stimulus: 2.0, unilateral: true },
-          { name: "Clean & Push Press", type: "Ballistic", stimulus: 2.0, unilateral: true },
-          { name: "Snatch & Press", type: "Grind", stimulus: 2.0, unilateral: true },
-          { name: "Clean → Press → Squat", type: "Grind", stimulus: 2.5, unilateral: true }
+          { name: "Snatch & Press", type: "Grind", stimulus: 2.0, unilateral: true, video: "https://www.youtube.com/shorts/icAh8ZEjNx8" },
+          { name: "Clean → Press → Squat", type: "Grind", stimulus: 2.5, unilateral: true, video: "https://www.youtube.com/watch?v=Fsd4VcFO094" }
         ]
       }
     };
@@ -126,7 +127,8 @@
       const [testMode, setTestMode] = useState(false);
       const [workout, setWorkout] = useState([]);
       const [history, setHistory] = useState([]);
-      const [expandedIndex, setExpandedIndex] = useState(null);
+      const [expandedIndex, setExpandedIndex] = useState(null); // history expand
+      const [openExercise, setOpenExercise] = useState(null);   // workout card dropdown
       const [darkMode, setDarkMode] = useState(false);
       const [lastWorkoutExercises, setLastWorkoutExercises] = useState([]);
       const [preCheckEnabled, setPreCheckEnabled] = useState(false);
@@ -168,26 +170,18 @@
         return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
       };
 
-      const startTimer = () => {
-        setTime(0);
-        setTimerRunning(true);
-      };
+      const startTimer = () => { setTime(0); setTimerRunning(true); };
 
       const stopTimer = () => {
         setTimerRunning(false);
         alert(`Workout time: ${formatTime(time)}`);
-
-        // Save time to last history entry
         if (history.length > 0) {
           const updatedHistory = [...history];
           updatedHistory[0].time = formatTime(time);
-
-          // Check Bell Up for test
           if (updatedHistory[0].type === "test" && time <= 1200) {
             updatedHistory[0].note = "Bell Up! Completed test in under 20 minutes.";
             alert("Bell Up! Great job — move to a heavier bell next session.");
           }
-
           setHistory(updatedHistory);
           localStorage.setItem("kbInfernoHistory", JSON.stringify(updatedHistory));
         }
@@ -201,26 +195,20 @@
       };
 
       const handleGenerateClick = () => {
-        if (preCheckEnabled) {
-          setShowPreCheck(true);
-        } else {
-          generateWorkout();
-        }
+        if (preCheckEnabled) setShowPreCheck(true);
+        else generateWorkout();
       };
 
       const handlePreCheckSubmit = () => {
         const score = Object.values(preCheckAnswers).filter(Boolean).length;
-
         if (score === 0) {
           alert("Recovery Day: Your body needs extra recovery today. Skip your Hellfire workout and do light mobility or stretching instead.");
           saveToHistory("recovery", []);
           setShowPreCheck(false);
           return;
         }
-
         if (score === 1) setTotalSU(300);
         else if (score === 2) setTotalSU(400);
-
         setShowPreCheck(false);
         generateWorkout(`Pre-check score: ${score}`);
       };
@@ -228,6 +216,7 @@
       const generateWorkout = (note = null) => {
         setTimerRunning(false);
         setTime(0);
+        setOpenExercise(null);
 
         if (testMode) {
           setWorkout(testWorkout);
@@ -240,6 +229,7 @@
           let currentSU = 0;
           let patternCount = {};
 
+          // minimaal 1 per patroon
           patterns.forEach(pattern => {
             const options = db[pattern].filter(opt => !lastWorkoutExercises.includes(opt.name)) || db[pattern];
             const exercise = options.length ? options[Math.floor(Math.random() * options.length)] : db[pattern][0];
@@ -261,6 +251,7 @@
             });
           });
 
+          // vul aan tot target SU, max 2 per patroon
           while (currentSU < totalSU - 30) {
             const pattern = patterns[Math.floor(Math.random() * patterns.length)];
             if (patternCount[pattern] >= 2) continue;
@@ -287,9 +278,10 @@
             });
           }
 
-          setWorkout(shuffleArray(exercises));
-          saveToHistory("workout", exercises, note);
-          localStorage.setItem("kbInfernoLastWorkout", JSON.stringify(exercises.map(e => e.name)));
+          const finalList = shuffleArray(exercises);
+          setWorkout(finalList);
+          saveToHistory("workout", finalList, note);
+          localStorage.setItem("kbInfernoLastWorkout", JSON.stringify(finalList.map(e => e.name)));
         }
       };
 
@@ -305,7 +297,8 @@
             reps: ex.reps || ex.formattedReps,
             pattern: ex.pattern,
             su: ex.su,
-            unilateral: ex.unilateral
+            unilateral: ex.unilateral,
+            video: ex.video || null
           })),
           note
         };
@@ -341,10 +334,7 @@
               KB Hellfire
             </h1>
             <div className="flex gap-2">
-              <button
-                onClick={toggleDarkMode}
-                className="px-3 py-1 bg-gray-700 text-white rounded text-sm"
-              >
+              <button onClick={toggleDarkMode} className="px-3 py-1 bg-gray-700 text-white rounded text-sm">
                 {darkMode ? "Light Mode" : "Dark Mode"}
               </button>
               <button
@@ -433,24 +423,14 @@
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
-                  <button
-                    onClick={() => setShowPreCheck(false)}
-                    className="px-3 py-1 bg-gray-400 text-white rounded"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handlePreCheckSubmit}
-                    className="px-3 py-1 bg-orange-500 text-white rounded"
-                  >
-                    Submit
-                  </button>
+                  <button onClick={() => setShowPreCheck(false)} className="px-3 py-1 bg-gray-400 text-white rounded">Cancel</button>
+                  <button onClick={handlePreCheckSubmit} className="px-3 py-1 bg-orange-500 text-white rounded">Submit</button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Workout List */}
+          {/* Workout List (met klikbare dropdown voor link) */}
           {workout.length > 0 && (
             <ul className="space-y-3 mt-4">
               {workout.map((exercise, index) => (
@@ -458,8 +438,19 @@
                   key={index}
                   className={`border rounded p-3 bg-gray-50 ${patternColors[exercise.pattern] || ""}`}
                 >
-                  <div className="text-lg font-semibold">{index + 1}. {exercise.name}</div>
-                  <div className="text-md font-bold text-gray-800">
+                  <button
+                    className="w-full text-left"
+                    onClick={() => setOpenExercise(openExercise === index ? null : index)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-lg font-semibold">
+                        {index + 1}. {exercise.name}
+                      </div>
+                      <span className="text-sm">{openExercise === index ? "▲" : "▼"}</span>
+                    </div>
+                  </button>
+
+                  <div className="text-md font-bold text-gray-800 mt-1">
                     {exercise.unilateral
                       ? `${exercise.reps} reps (${Math.ceil(exercise.reps / 2)} per arm)`
                       : `${exercise.reps} reps`}
@@ -467,6 +458,25 @@
                       <span className="ml-2 text-sm text-gray-600">({exercise.su} SU)</span>
                     )}
                   </div>
+
+                  {/* Dropdown content */}
+                  {openExercise === index && (
+                    <div className="mt-2">
+                      {exercise.video ? (
+                        <a
+                          href={exercise.video}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="link-pill hover:bg-orange-50 dark:hover:bg-gray-700"
+                          title="Bekijk demo"
+                        >
+                          ▶︎ Bekijk demo (YouTube)
+                        </a>
+                      ) : (
+                        <span className="text-sm italic text-gray-500">Geen video-link beschikbaar</span>
+                      )}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -476,20 +486,14 @@
           {workout.length > 0 && (
             <div className="text-center mt-4">
               {!timerRunning && (
-                <button
-                  onClick={startTimer}
-                  className="px-4 py-2 bg-green-600 text-white rounded"
-                >
+                <button onClick={startTimer} className="px-4 py-2 bg-green-600 text-white rounded">
                   Start Timer
                 </button>
               )}
               {timerRunning && (
                 <div>
                   <div className="text-xl font-bold my-2">{formatTime(time)}</div>
-                  <button
-                    onClick={stopTimer}
-                    className="px-4 py-2 bg-red-600 text-white rounded"
-                  >
+                  <button onClick={stopTimer} className="px-4 py-2 bg-red-600 text-white rounded">
                     Stop Timer
                   </button>
                 </div>
@@ -504,10 +508,7 @@
               <ul className="space-y-2">
                 {history.map((h, i) => (
                   <li key={i} className="border rounded p-2">
-                    <div
-                      className="flex justify-between cursor-pointer"
-                      onClick={() => toggleExpand(i)}
-                    >
+                    <div className="flex justify-between cursor-pointer" onClick={() => toggleExpand(i)}>
                       <span>
                         {h.date} – {h.type === "test" ? <span className="text-gray-500 font-semibold">Test</span> : h.type === "recovery" ? "Recovery Day" : h.level} ({h.totalSU} SU) {h.time ? `– ${h.time}` : ""}
                       </span>
@@ -523,9 +524,21 @@
                             <ul className="list-disc list-inside">
                               {h.exercises.map((ex, idx) => (
                                 <li key={idx} className={patternColors[ex.pattern] || ""}>
-                                  {ex.name} – {ex.unilateral
-                                    ? `${ex.reps} (${Math.ceil(ex.reps/2)} per arm)`
-                                    : ex.reps} {ex.su ? `(${ex.su} SU)` : ""}
+                                  <span>
+                                    {ex.name} – {ex.unilateral
+                                      ? `${ex.reps} (${Math.ceil((typeof ex.reps === "number" ? ex.reps : parseInt(ex.reps)) / 2)} per arm)`
+                                      : ex.reps} {ex.su ? `(${ex.su} SU)` : ""}
+                                  </span>
+                                  {ex.video && (
+                                    <a
+                                      className="ml-2 text-xs underline opacity-80"
+                                      href={ex.video}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      demo
+                                    </a>
+                                  )}
                                 </li>
                               ))}
                             </ul>
@@ -537,19 +550,11 @@
                 ))}
               </ul>
 
-              {/* Remove last entry */}
               <div className="text-center mt-3">
-                <button
-                  onClick={removeLastEntry}
-                  className="px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm mr-2"
-                >
+                <button onClick={removeLastEntry} className="px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm mr-2">
                   Remove Last Entry
                 </button>
-
-                <button
-                  onClick={resetAll}
-                  className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm"
-                >
+                <button onClick={resetAll} className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm">
                   Clear All History
                 </button>
               </div>
