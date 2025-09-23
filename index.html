@@ -7,9 +7,17 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Make Tailwind use class-based dark mode -->
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    /* Keep simple, theme-friendly surfaces */
     body.dark { background-color:#111; color:#eee; }
+    .dark .bg-white { background-color:#222 !important; }
+    .dark .bg-gray-100 { background-color:#333 !important; }
+    .dark .bg-gray-50 { background-color:#222 !important; }
     .link-pill { display:inline-block; padding:.4rem .6rem; border-radius:.6rem; border:1px solid rgba(0,0,0,.1); }
     .dark .link-pill { border-color: rgba(255,255,255,.15); }
   </style>
@@ -41,7 +49,7 @@
       { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" }
     ];
 
-    // 📚 Exercise database (same content, English comments)
+    // 📚 Exercise database
     const exerciseDatabase = {
       beginner: {
         squat: [
@@ -152,6 +160,9 @@
 
         const theme = localStorage.getItem(LS.THEME) || "light";
         setDarkMode(theme === "dark");
+        // Toggle dark on <html>, not <body>
+        document.documentElement.classList.toggle("dark", theme === "dark");
+        // Keep body helper for bg color
         document.body.classList.toggle("dark", theme === "dark");
 
         const last = JSON.parse(localStorage.getItem(LS.LAST_NAMES) || "[]");
@@ -250,6 +261,8 @@
       const toggleDarkMode = () => {
         const newMode = !darkMode;
         setDarkMode(newMode);
+        // Toggle on <html> and helper on body
+        document.documentElement.classList.toggle("dark", newMode);
         document.body.classList.toggle("dark", newMode);
         localStorage.setItem(LS.THEME, newMode ? "dark" : "light");
       };
@@ -274,7 +287,6 @@
       };
 
       const generateWorkout = (note = null) => {
-        // Prevent accidental overwrite if there is an active session
         const hasActive = (workout && workout.length);
         if (hasActive && !confirm("There is an active session. Overwrite it with a new workout?")) return;
 
@@ -495,14 +507,14 @@
             </div>
           )}
 
-          {/* Workout List (with dropdown for links) */}
+          {/* Workout List */}
           {workout.length > 0 && (
             <>
               <ul className="space-y-3 mt-4">
                 {workout.map((exercise, index) => (
                   <li
                     key={index}
-                    className={`border rounded p-3 bg-gray-50 ${patternColors[exercise.pattern] || ""}`}
+                    className={`border rounded p-3 bg-gray-50 dark:bg-gray-800/40 ${patternColors[exercise.pattern] || ""}`}
                   >
                     <button
                       className="w-full text-left"
@@ -516,6 +528,7 @@
                       </div>
                     </button>
 
+                    {/* 🔎 Readable reps + SU in both themes */}
                     <div className="text-md font-bold text-gray-900 dark:text-gray-100 mt-1">
                       {exercise.unilateral
                         ? `${exercise.reps} reps (${Math.ceil(exercise.reps / 2)} per arm)`
@@ -539,7 +552,7 @@
                             ▶︎ Watch demo (YouTube)
                           </a>
                         ) : (
-                          <span className="text-sm italic text-gray-600 dark:text-gray-300">No video link available</span>
+                          <span className="text-sm italic text-gray-500 dark:text-gray-300">No video link available</span>
                         )}
                       </div>
                     )}
@@ -580,14 +593,18 @@
 
           {/* History */}
           {history.length > 0 && (
-            <div className="mt-6 p-4 bg-gray-100 rounded border text-sm">
+            <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-900/50 rounded border text-sm">
               <h2 className="font-bold mb-2">History (last 5)</h2>
               <ul className="space-y-2">
                 {history.map((h, i) => (
                   <li key={i} className="border rounded p-2">
                     <div className="flex justify-between cursor-pointer" onClick={() => toggleExpand(i)}>
                       <span>
-                        {h.date} – {h.type === "test" ? <span className="text-gray-500 dark:text-gray-300 font-semibold">Test</span> : h.type === "recovery" ? "Recovery Day" : h.level} ({h.totalSU} SU) {h.time ? `– ${h.time}` : ""}
+                        {h.date} – {h.type === "test"
+                          ? <span className="text-gray-600 dark:text-gray-300 font-semibold">Test</span>
+                          : h.type === "recovery"
+                            ? "Recovery Day"
+                            : h.level} ({h.totalSU} SU) {h.time ? `– ${h.time}` : ""}
                       </span>
                       <span>{expandedIndex === i ? "▲" : "▼"}</span>
                     </div>
@@ -645,5 +662,3 @@
   </script>
 </body>
 </html>
-
-
