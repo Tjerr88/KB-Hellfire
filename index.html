@@ -519,12 +519,12 @@
                       </div>
                     </button>
 
-                    <div className="text-md font-bold text-gray-800 mt-1">
+                    <div className="text-md font-bold text-gray-800 dark:text-gray-100 mt-1">
                       {exercise.unilateral
                         ? `${exercise.reps} reps (${Math.ceil(exercise.reps / 2)} per arm)`
                         : `${exercise.reps} reps`}
                       {!testMode && exercise.su && (
-                        <span className="ml-2 text-sm text-gray-600">({exercise.su} SU)</span>
+                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">({exercise.su} SU)</span>
                       )}
                     </div>
 
@@ -542,7 +542,7 @@
                             ▶︎ Watch demo (YouTube)
                           </a>
                         ) : (
-                          <span className="text-sm italic text-gray-500">No video link available</span>
+                          <span className="text-sm italic text-gray-500 dark:text-gray-300">No video link available</span>
                         )}
                       </div>
                     )}
@@ -590,7 +590,7 @@
                   <li key={i} className="border rounded p-2">
                     <div className="flex justify-between cursor-pointer" onClick={() => toggleExpand(i)}>
                       <span>
-                        {h.date} – {h.type === "test" ? <span className="text-gray-500 font-semibold">Test</span> : h.type === "recovery" ? "Recovery Day" : h.level} ({h.totalSU} SU) {h.time ? `– ${h.time}` : ""}
+                        {h.date} – {h.type === "test" ? <span className="text-gray-500 dark:text-gray-300 font-semibold">Test</span> : h.type === "recovery" ? "Recovery Day" : h.level} ({h.totalSU} SU) {h.time ? `– ${h.time}` : ""}
                       </span>
                       <span>{expandedIndex === i ? "▲" : "▼"}</span>
                     </div>
@@ -648,3 +648,4 @@
   </script>
 </body>
 </html>
+
