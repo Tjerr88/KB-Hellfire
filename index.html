@@ -21,7 +21,7 @@
   <div id="root" class="p-2 sm:p-4"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     const patternColors = {
       squat: "text-blue-400",
@@ -32,7 +32,7 @@
       hybrid: "text-orange-400"
     };
 
-    // ✅ Test Workout met links
+    // ✅ Test Workout with links
     const testWorkout = [
       { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" },
       { name: "Deadlift", reps: 25, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=l6gDwf3xC6s" },
@@ -44,7 +44,7 @@
       { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" }
     ];
 
-    // 📚 Oefeningen-database conform jouw nieuwe lijst + video-links
+    // 📚 Exercise database (same content, English comments)
     const exerciseDatabase = {
       beginner: {
         squat: [
@@ -121,14 +121,22 @@
       return arr;
     };
 
+    // 🔐 LocalStorage keys
+    const LS = {
+      HISTORY: "kbInfernoHistory",
+      LAST_NAMES: "kbInfernoLastWorkout",
+      THEME: "theme",
+      ACTIVE: "kbInfernoActiveWorkout" // holds: workout, level, totalSU, testMode, time, timerRunning, startedAt, note
+    };
+
     function App() {
       const [level, setLevel] = useState("beginner");
       const [totalSU, setTotalSU] = useState(300);
       const [testMode, setTestMode] = useState(false);
       const [workout, setWorkout] = useState([]);
       const [history, setHistory] = useState([]);
-      const [expandedIndex, setExpandedIndex] = useState(null); // history expand
-      const [openExercise, setOpenExercise] = useState(null);   // workout card dropdown
+      const [expandedIndex, setExpandedIndex] = useState(null); // history expand/collapse
+      const [openExercise, setOpenExercise] = useState(null);   // per-exercise dropdown
       const [darkMode, setDarkMode] = useState(false);
       const [lastWorkoutExercises, setLastWorkoutExercises] = useState([]);
       const [preCheckEnabled, setPreCheckEnabled] = useState(false);
@@ -138,31 +146,65 @@
       // Timer state
       const [timerRunning, setTimerRunning] = useState(false);
       const [time, setTime] = useState(0);
-      const [intervalId, setIntervalId] = useState(null);
+      const intervalRef = useRef(null);
 
+      // 🔁 INIT
       useEffect(() => {
-        const saved = JSON.parse(localStorage.getItem("kbInfernoHistory") || "[]");
-        setHistory(saved);
+        const savedHistory = JSON.parse(localStorage.getItem(LS.HISTORY) || "[]");
+        setHistory(savedHistory);
 
-        const theme = localStorage.getItem("theme") || "light";
+        const theme = localStorage.getItem(LS.THEME) || "light";
         setDarkMode(theme === "dark");
         document.body.classList.toggle("dark", theme === "dark");
 
-        const last = JSON.parse(localStorage.getItem("kbInfernoLastWorkout") || "[]");
+        const last = JSON.parse(localStorage.getItem(LS.LAST_NAMES) || "[]");
         setLastWorkoutExercises(last);
+
+        // ⏪ Restore active session if present
+        const active = JSON.parse(localStorage.getItem(LS.ACTIVE) || "null");
+        if (active && active.workout && active.workout.length) {
+          setWorkout(active.workout);
+          setLevel(active.level ?? "beginner");
+          setTotalSU(active.totalSU ?? 300);
+          setTestMode(!!active.testMode);
+          setTime(active.time ?? 0);
+          setTimerRunning(!!active.timerRunning);
+        }
       }, []);
 
-      // Timer effect
+      // ⏱️ Timer effect
       useEffect(() => {
-        let id;
         if (timerRunning) {
-          id = setInterval(() => setTime((prev) => prev + 1), 1000);
-          setIntervalId(id);
-        } else {
-          clearInterval(intervalId);
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          intervalRef.current = setInterval(() => {
+            setTime((prev) => prev + 1);
+          }, 1000);
+        } else if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
         }
-        return () => clearInterval(id);
+        return () => {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+        };
       }, [timerRunning]);
+
+      // 💾 Persist active workout + timer state
+      useEffect(() => {
+        if (workout && workout.length) {
+          const payload = {
+            workout,
+            level,
+            totalSU,
+            testMode,
+            time,
+            timerRunning,
+            startedAt: Date.now()
+          };
+          localStorage.setItem(LS.ACTIVE, JSON.stringify(payload));
+        } else {
+          localStorage.removeItem(LS.ACTIVE);
+        }
+      }, [workout, level, totalSU, testMode, time, timerRunning]);
 
       const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -183,15 +225,36 @@
             alert("Bell Up! Great job — move to a heavier bell next session.");
           }
           setHistory(updatedHistory);
-          localStorage.setItem("kbInfernoHistory", JSON.stringify(updatedHistory));
+          localStorage.setItem(LS.HISTORY, JSON.stringify(updatedHistory));
         }
+      };
+
+      // ✅ Complete session: stop timer, keep history, clear active session
+      const completeSession = () => {
+        if (timerRunning) {
+          if (!confirm("Timer is still running. Stop and complete?")) return;
+          stopTimer();
+        }
+        setWorkout([]);
+        localStorage.removeItem(LS.ACTIVE);
+        setOpenExercise(null);
+        alert("Session cleared. Ready for the next workout.");
+      };
+
+      // ❌ Discard current session without touching history
+      const abandonSession = () => {
+        if (!workout.length) return;
+        if (!confirm("Discard the current (uncompleted) session? This also removes it from memory.")) return;
+        setWorkout([]);
+        localStorage.removeItem(LS.ACTIVE);
+        setOpenExercise(null);
       };
 
       const toggleDarkMode = () => {
         const newMode = !darkMode;
         setDarkMode(newMode);
         document.body.classList.toggle("dark", newMode);
-        localStorage.setItem("theme", newMode ? "dark" : "light");
+        localStorage.setItem(LS.THEME, newMode ? "dark" : "light");
       };
 
       const handleGenerateClick = () => {
@@ -214,6 +277,10 @@
       };
 
       const generateWorkout = (note = null) => {
+        // Prevent accidental overwrite if there is an active session
+        const hasActive = (workout && workout.length);
+        if (hasActive && !confirm("There is an active session. Overwrite it with a new workout?")) return;
+
         setTimerRunning(false);
         setTime(0);
         setOpenExercise(null);
@@ -221,7 +288,7 @@
         if (testMode) {
           setWorkout(testWorkout);
           saveToHistory("test", testWorkout, note);
-          localStorage.setItem("kbInfernoLastWorkout", JSON.stringify(testWorkout.map(e => e.name)));
+          localStorage.setItem(LS.LAST_NAMES, JSON.stringify(testWorkout.map(e => e.name)));
         } else {
           const db = exerciseDatabase[level];
           const patterns = Object.keys(db);
@@ -229,7 +296,7 @@
           let currentSU = 0;
           let patternCount = {};
 
-          // minimaal 1 per patroon
+          // at least 1 per pattern
           patterns.forEach(pattern => {
             const options = db[pattern].filter(opt => !lastWorkoutExercises.includes(opt.name)) || db[pattern];
             const exercise = options.length ? options[Math.floor(Math.random() * options.length)] : db[pattern][0];
@@ -251,7 +318,7 @@
             });
           });
 
-          // vul aan tot target SU, max 2 per patroon
+          // fill until target SU, max 2 per pattern
           while (currentSU < totalSU - 30) {
             const pattern = patterns[Math.floor(Math.random() * patterns.length)];
             if (patternCount[pattern] >= 2) continue;
@@ -281,7 +348,7 @@
           const finalList = shuffleArray(exercises);
           setWorkout(finalList);
           saveToHistory("workout", finalList, note);
-          localStorage.setItem("kbInfernoLastWorkout", JSON.stringify(finalList.map(e => e.name)));
+          localStorage.setItem(LS.LAST_NAMES, JSON.stringify(finalList.map(e => e.name)));
         }
       };
 
@@ -304,7 +371,7 @@
         };
         const updated = [entry, ...history].slice(0, 5);
         setHistory(updated);
-        localStorage.setItem("kbInfernoHistory", JSON.stringify(updated));
+        localStorage.setItem(LS.HISTORY, JSON.stringify(updated));
       };
 
       const removeLastEntry = () => {
@@ -312,15 +379,16 @@
         if (!confirm("Remove last workout from history?")) return;
         const updated = history.slice(1);
         setHistory(updated);
-        localStorage.setItem("kbInfernoHistory", JSON.stringify(updated));
+        localStorage.setItem(LS.HISTORY, JSON.stringify(updated));
       };
 
       const resetAll = () => {
-        if (!confirm("Clear all history and workout?")) return;
+        if (!confirm("Clear all history and the current workout?")) return;
         setWorkout([]);
         setHistory([]);
-        localStorage.removeItem("kbInfernoHistory");
-        localStorage.removeItem("kbInfernoLastWorkout");
+        localStorage.removeItem(LS.HISTORY);
+        localStorage.removeItem(LS.LAST_NAMES);
+        localStorage.removeItem(LS.ACTIVE);
       };
 
       const toggleExpand = (index) => {
@@ -409,7 +477,7 @@
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
               <div className="bg-white p-6 rounded shadow-md max-w-md w-full">
                 <h2 className="text-lg font-bold mb-4">Pre-Workout Check</h2>
-                <p className="mb-3 text-sm">Select if you feel well rested, energized and minimal soreness.</p>
+                <p className="mb-3 text-sm">Select if you feel well rested, energized and have minimal soreness.</p>
                 <div className="space-y-2">
                   {["sleep", "energy", "soreness"].map(key => (
                     <label key={key} className="flex items-center space-x-2">
@@ -430,75 +498,87 @@
             </div>
           )}
 
-          {/* Workout List (met klikbare dropdown voor link) */}
+          {/* Workout List (with dropdown for links) */}
           {workout.length > 0 && (
-            <ul className="space-y-3 mt-4">
-              {workout.map((exercise, index) => (
-                <li
-                  key={index}
-                  className={`border rounded p-3 bg-gray-50 ${patternColors[exercise.pattern] || ""}`}
-                >
-                  <button
-                    className="w-full text-left"
-                    onClick={() => setOpenExercise(openExercise === index ? null : index)}
+            <>
+              <ul className="space-y-3 mt-4">
+                {workout.map((exercise, index) => (
+                  <li
+                    key={index}
+                    className={`border rounded p-3 bg-gray-50 ${patternColors[exercise.pattern] || ""}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="text-lg font-semibold">
-                        {index + 1}. {exercise.name}
+                    <button
+                      className="w-full text-left"
+                      onClick={() => setOpenExercise(openExercise === index ? null : index)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="text-lg font-semibold">
+                          {index + 1}. {exercise.name}
+                        </div>
+                        <span className="text-sm">{openExercise === index ? "▲" : "▼"}</span>
                       </div>
-                      <span className="text-sm">{openExercise === index ? "▲" : "▼"}</span>
-                    </div>
-                  </button>
+                    </button>
 
-                  <div className="text-md font-bold text-gray-800 mt-1">
-                    {exercise.unilateral
-                      ? `${exercise.reps} reps (${Math.ceil(exercise.reps / 2)} per arm)`
-                      : `${exercise.reps} reps`}
-                    {!testMode && exercise.su && (
-                      <span className="ml-2 text-sm text-gray-600">({exercise.su} SU)</span>
-                    )}
-                  </div>
-
-                  {/* Dropdown content */}
-                  {openExercise === index && (
-                    <div className="mt-2">
-                      {exercise.video ? (
-                        <a
-                          href={exercise.video}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="link-pill hover:bg-orange-50 dark:hover:bg-gray-700"
-                          title="Bekijk demo"
-                        >
-                          ▶︎ Bekijk demo (YouTube)
-                        </a>
-                      ) : (
-                        <span className="text-sm italic text-gray-500">Geen video-link beschikbaar</span>
+                    <div className="text-md font-bold text-gray-800 mt-1">
+                      {exercise.unilateral
+                        ? `${exercise.reps} reps (${Math.ceil(exercise.reps / 2)} per arm)`
+                        : `${exercise.reps} reps`}
+                      {!testMode && exercise.su && (
+                        <span className="ml-2 text-sm text-gray-600">({exercise.su} SU)</span>
                       )}
                     </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
 
-          {/* Timer */}
-          {workout.length > 0 && (
-            <div className="text-center mt-4">
-              {!timerRunning && (
-                <button onClick={startTimer} className="px-4 py-2 bg-green-600 text-white rounded">
-                  Start Timer
-                </button>
-              )}
-              {timerRunning && (
-                <div>
-                  <div className="text-xl font-bold my-2">{formatTime(time)}</div>
-                  <button onClick={stopTimer} className="px-4 py-2 bg-red-600 text-white rounded">
-                    Stop Timer
+                    {/* Dropdown content */}
+                    {openExercise === index && (
+                      <div className="mt-2">
+                        {exercise.video ? (
+                          <a
+                            href={exercise.video}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="link-pill hover:bg-orange-50 dark:hover:bg-gray-700"
+                            title="Watch demo"
+                          >
+                            ▶︎ Watch demo (YouTube)
+                          </a>
+                        ) : (
+                          <span className="text-sm italic text-gray-500">No video link available</span>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Timer + Session controls */}
+              <div className="text-center mt-4 space-x-2">
+                {!timerRunning && (
+                  <button onClick={startTimer} className="px-4 py-2 bg-green-600 text-white rounded">
+                    Start Timer
                   </button>
-                </div>
-              )}
-            </div>
+                )}
+                {timerRunning && (
+                  <div className="inline-flex items-center gap-3">
+                    <div className="text-xl font-bold my-2">{formatTime(time)}</div>
+                    <button onClick={stopTimer} className="px-4 py-2 bg-red-600 text-white rounded">
+                      Stop Timer
+                    </button>
+                  </div>
+                )}
+                {!timerRunning && time > 0 && (
+                  <span className="inline-block text-sm align-middle ml-2">{formatTime(time)}</span>
+                )}
+              </div>
+
+              <div className="flex justify-center gap-2 mt-3">
+                <button onClick={completeSession} className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded">
+                  Complete (save & clear)
+                </button>
+                <button onClick={abandonSession} className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded">
+                  Discard current
+                </button>
+              </div>
+            </>
           )}
 
           {/* History */}
