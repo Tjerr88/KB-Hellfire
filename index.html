@@ -126,6 +126,38 @@
       return arr;
     };
 
+    // 🔒 Zorgt dat dezelfde oefening nooit twee keer direct achter elkaar staat
+    const ensureNoAdjacentDuplicateExercises = (list) => {
+      if (list.length < 2) return list;
+      let arr = [...list];
+
+      const hasAdjacentDupes = (a) =>
+        a.some((item, idx) => idx > 0 && item.name === a[idx - 1].name);
+
+      // Probeer eerst meerdere reshuffles
+      let attempts = 0;
+      while (hasAdjacentDupes(arr) && attempts < 20) {
+        arr = shuffleArray(arr);
+        attempts++;
+      }
+
+      // Als er dan nog steeds buren gelijk zijn, gericht swappen
+      if (hasAdjacentDupes(arr)) {
+        for (let i = 0; i < arr.length - 1; i++) {
+          if (arr[i].name === arr[i + 1].name) {
+            for (let j = i + 2; j < arr.length; j++) {
+              if (arr[j].name !== arr[i].name) {
+                [arr[i + 1], arr[j]] = [arr[j], arr[i + 1]];
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      return arr;
+    };
+
     // 🔐 LocalStorage keys
     const LS = {
       HISTORY: "kbInfernoHistory",
@@ -354,7 +386,10 @@
             });
           }
 
-          const finalList = shuffleArray(exercises);
+          // 🔁 Shuffle + garanderen: geen twee dezelfde direct achter elkaar
+          const shuffled = shuffleArray(exercises);
+          const finalList = ensureNoAdjacentDuplicateExercises(shuffled);
+
           setWorkout(finalList);
           saveToHistory("workout", finalList, note);
           localStorage.setItem(LS.LAST_NAMES, JSON.stringify(finalList.map(e => e.name)));
