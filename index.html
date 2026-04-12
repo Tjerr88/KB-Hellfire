@@ -2,31 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
   <title>KB Hellfire</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Make Tailwind use class-based dark mode -->
   <script>
-    tailwind.config = { darkMode: 'class' };
+    tailwind.config = { darkMode: "class" };
   </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* Keep simple, theme-friendly surfaces */
-    body.dark { background-color:#111; color:#eee; }
-    .dark .bg-white { background-color:#222 !important; }
-    .dark .bg-gray-100 { background-color:#333 !important; }
-    .dark .bg-gray-50 { background-color:#222 !important; }
-    .link-pill { display:inline-block; padding:.4rem .6rem; border-radius:.6rem; border:1px solid rgba(0,0,0,.1); }
-    .dark .link-pill { border-color: rgba(255,255,255,.15); }
+    body.dark { background-color: #111; color: #eee; }
+    .dark .bg-white { background-color: #222 !important; }
+    .dark .bg-gray-100 { background-color: #333 !important; }
+    .dark .bg-gray-50 { background-color: #222 !important; }
+    .link-pill {
+      display: inline-block;
+      padding: 0.4rem 0.6rem;
+      border-radius: 0.6rem;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .dark .link-pill { border-color: rgba(255, 255, 255, 0.15); }
   </style>
 </head>
 <body class="bg-gray-100">
   <div id="root" class="p-2 sm:p-4"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useEffect, useRef, useState } = React;
+
+    const HISTORY_LIMIT = 5;
+    const PRECHECK_KEYS = ["sleep", "energy", "soreness"];
+    const LEVELS = ["beginner", "advanced"];
+    const SU_OPTIONS = [300, 400, 500];
 
     const patternColors = {
       squat: "text-blue-400",
@@ -37,7 +46,13 @@
       hybrid: "text-orange-400"
     };
 
-    // ✅ Test Workout with links
+    const LS = {
+      HISTORY: "kbInfernoHistory",
+      LAST_NAMES: "kbInfernoLastWorkout",
+      THEME: "theme",
+      ACTIVE: "kbInfernoActiveWorkout"
+    };
+
     const testWorkout = [
       { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" },
       { name: "Deadlift", reps: 25, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=l6gDwf3xC6s" },
@@ -49,7 +64,6 @@
       { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" }
     ];
 
-    // 📚 Exercise database
     const exerciseDatabase = {
       beginner: {
         squat: [
@@ -112,45 +126,77 @@
         ],
         hybrid: [
           { name: "Snatch & Press", type: "Grind", stimulus: 2.0, unilateral: true, video: "https://www.youtube.com/shorts/icAh8ZEjNx8" },
-          { name: "Clean → Press → Squat", type: "Grind", stimulus: 2.5, unilateral: true, video: "https://www.youtube.com/watch?v=Fsd4VcFO094" }
+          { name: "Clean -> Press -> Squat", type: "Grind", stimulus: 2.5, unilateral: true, video: "https://www.youtube.com/watch?v=Fsd4VcFO094" }
         ]
       }
     };
 
+    const safeReadJSON = (key, fallback) => {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (error) {
+        console.warn(`Could not read localStorage key "${key}"`, error);
+        return fallback;
+      }
+    };
+
+    const writeStorage = (key, value) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    };
+
+    const applyTheme = (isDark) => {
+      document.documentElement.classList.toggle("dark", isDark);
+      document.body.classList.toggle("dark", isDark);
+    };
+
+    const formatTime = (seconds) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+    };
+
+    const getRepsLabel = (reps, unilateral) =>
+      unilateral ? `${reps} reps (${Math.ceil(reps / 2)} per arm)` : `${reps} reps`;
+
+    const parseRepCount = (value) => {
+      if (typeof value === "number") return value;
+      const match = String(value).match(/\d+/);
+      return match ? Number(match[0]) : 0;
+    };
+
+    const pickRandom = (items) => items[Math.floor(Math.random() * items.length)];
+
     const shuffleArray = (array) => {
       const arr = [...array];
-      for (let i = arr.length - 1; i > 0; i--) {
+      for (let i = arr.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
       return arr;
     };
 
-    // 🔒 Zorgt dat dezelfde oefening nooit twee keer direct achter elkaar staat
     const ensureNoAdjacentDuplicateExercises = (list) => {
       if (list.length < 2) return list;
+
       let arr = [...list];
+      const hasAdjacentDupes = (items) =>
+        items.some((item, idx) => idx > 0 && item.name === items[idx - 1].name);
 
-      const hasAdjacentDupes = (a) =>
-        a.some((item, idx) => idx > 0 && item.name === a[idx - 1].name);
-
-      // Probeer eerst meerdere reshuffles
       let attempts = 0;
       while (hasAdjacentDupes(arr) && attempts < 20) {
         arr = shuffleArray(arr);
-        attempts++;
+        attempts += 1;
       }
 
-      // Als er dan nog steeds buren gelijk zijn, gericht swappen
       if (hasAdjacentDupes(arr)) {
-        for (let i = 0; i < arr.length - 1; i++) {
-          if (arr[i].name === arr[i + 1].name) {
-            for (let j = i + 2; j < arr.length; j++) {
-              if (arr[j].name !== arr[i].name) {
-                [arr[i + 1], arr[j]] = [arr[j], arr[i + 1]];
-                break;
-              }
-            }
+        for (let i = 0; i < arr.length - 1; i += 1) {
+          if (arr[i].name !== arr[i + 1].name) continue;
+
+          for (let j = i + 2; j < arr.length; j += 1) {
+            if (arr[j].name === arr[i].name) continue;
+            [arr[i + 1], arr[j]] = [arr[j], arr[i + 1]];
+            break;
           }
         }
       }
@@ -158,13 +204,27 @@
       return arr;
     };
 
-    // 🔐 LocalStorage keys
-    const LS = {
-      HISTORY: "kbInfernoHistory",
-      LAST_NAMES: "kbInfernoLastWorkout",
-      THEME: "theme",
-      ACTIVE: "kbInfernoActiveWorkout" // holds: workout, level, totalSU, testMode, time, timerRunning, startedAt, note
+    const getPatternOptions = (patternList, excludedNames) => {
+      const filtered = patternList.filter((exercise) => !excludedNames.includes(exercise.name));
+      return filtered.length ? filtered : patternList;
     };
+
+    const createWorkoutExercise = (exercise, pattern, su) => {
+      const reps = Math.max(1, Math.round(su / exercise.stimulus));
+      return {
+        ...exercise,
+        pattern,
+        reps,
+        su,
+        formattedReps: getRepsLabel(reps, exercise.unilateral)
+      };
+    };
+
+    const normalizeTestWorkout = () =>
+      testWorkout.map((exercise) => ({
+        ...exercise,
+        formattedReps: getRepsLabel(exercise.reps, exercise.unilateral)
+      }));
 
     function App() {
       const [level, setLevel] = useState("beginner");
@@ -172,341 +232,361 @@
       const [testMode, setTestMode] = useState(false);
       const [workout, setWorkout] = useState([]);
       const [history, setHistory] = useState([]);
-      const [expandedIndex, setExpandedIndex] = useState(null); // history expand/collapse
-      const [openExercise, setOpenExercise] = useState(null);   // per-exercise dropdown
+      const [expandedIndex, setExpandedIndex] = useState(null);
+      const [openExercise, setOpenExercise] = useState(null);
       const [darkMode, setDarkMode] = useState(false);
       const [lastWorkoutExercises, setLastWorkoutExercises] = useState([]);
       const [preCheckEnabled, setPreCheckEnabled] = useState(false);
       const [showPreCheck, setShowPreCheck] = useState(false);
-      const [preCheckAnswers, setPreCheckAnswers] = useState({ sleep: false, soreness: false, energy: false });
-
-      // Timer state
+      const [preCheckAnswers, setPreCheckAnswers] = useState({
+        sleep: false,
+        soreness: false,
+        energy: false
+      });
       const [timerRunning, setTimerRunning] = useState(false);
       const [time, setTime] = useState(0);
+      const [sessionStartedAt, setSessionStartedAt] = useState(null);
       const intervalRef = useRef(null);
 
-      // 🔁 INIT
+      const persistHistory = (updater) => {
+        setHistory((prevHistory) => {
+          const nextHistory = typeof updater === "function" ? updater(prevHistory) : updater;
+          writeStorage(LS.HISTORY, nextHistory);
+          return nextHistory;
+        });
+      };
+
+      const saveToHistory = (type, workoutData, note = null, suValue = totalSU) => {
+        const entry = {
+          date: new Date().toLocaleString(),
+          type,
+          level,
+          totalSU: suValue,
+          exercises: workoutData.map((exercise) => ({
+            name: exercise.name,
+            reps: exercise.reps ?? exercise.formattedReps,
+            pattern: exercise.pattern,
+            su: exercise.su,
+            unilateral: exercise.unilateral,
+            video: exercise.video || null
+          })),
+          note
+        };
+
+        persistHistory((prevHistory) => [entry, ...prevHistory].slice(0, HISTORY_LIMIT));
+      };
+
       useEffect(() => {
-        const savedHistory = JSON.parse(localStorage.getItem(LS.HISTORY) || "[]");
-        setHistory(savedHistory);
-
+        const savedHistory = safeReadJSON(LS.HISTORY, []);
         const theme = localStorage.getItem(LS.THEME) || "light";
+        const lastExercises = safeReadJSON(LS.LAST_NAMES, []);
+        const active = safeReadJSON(LS.ACTIVE, null);
+
+        setHistory(Array.isArray(savedHistory) ? savedHistory : []);
         setDarkMode(theme === "dark");
-        // Toggle dark on <html>, not <body>
-        document.documentElement.classList.toggle("dark", theme === "dark");
-        // Keep body helper for bg color
-        document.body.classList.toggle("dark", theme === "dark");
+        applyTheme(theme === "dark");
+        setLastWorkoutExercises(Array.isArray(lastExercises) ? lastExercises : []);
 
-        const last = JSON.parse(localStorage.getItem(LS.LAST_NAMES) || "[]");
-        setLastWorkoutExercises(last);
+        if (active && Array.isArray(active.workout) && active.workout.length) {
+          const restoredStartedAt = typeof active.startedAt === "number" ? active.startedAt : null;
+          const restoredTime =
+            active.timerRunning && restoredStartedAt
+              ? Math.max(active.time ?? 0, Math.floor((Date.now() - restoredStartedAt) / 1000))
+              : active.time ?? 0;
 
-        // ⏪ Restore active session if present
-        const active = JSON.parse(localStorage.getItem(LS.ACTIVE) || "null");
-        if (active && active.workout && active.workout.length) {
           setWorkout(active.workout);
           setLevel(active.level ?? "beginner");
           setTotalSU(active.totalSU ?? 300);
-          setTestMode(!!active.testMode);
-          setTime(active.time ?? 0);
-          setTimerRunning(!!active.timerRunning);
+          setTestMode(Boolean(active.testMode));
+          setTime(restoredTime);
+          setTimerRunning(Boolean(active.timerRunning));
+          setSessionStartedAt(restoredStartedAt);
         }
       }, []);
 
-      // ⏱️ Timer effect
       useEffect(() => {
-        if (timerRunning) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          intervalRef.current = setInterval(() => {
-            setTime((prev) => prev + 1);
-          }, 1000);
-        } else if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
+        if (!timerRunning) {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          return;
         }
+
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(() => {
+          setTime((prev) => prev + 1);
+        }, 1000);
+
         return () => {
-          if (intervalRef.current) clearInterval(intervalRef.current);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
         };
       }, [timerRunning]);
 
-      // 💾 Persist active workout + timer state
       useEffect(() => {
-        if (workout && workout.length) {
-          const payload = {
-            workout,
-            level,
-            totalSU,
-            testMode,
-            time,
-            timerRunning,
-            startedAt: Date.now()
-          };
-          localStorage.setItem(LS.ACTIVE, JSON.stringify(payload));
-        } else {
+        if (!workout.length) {
           localStorage.removeItem(LS.ACTIVE);
+          return;
         }
-      }, [workout, level, totalSU, testMode, time, timerRunning]);
 
-      const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+        writeStorage(LS.ACTIVE, {
+          workout,
+          level,
+          totalSU,
+          testMode,
+          time,
+          timerRunning,
+          startedAt: sessionStartedAt
+        });
+      }, [workout, level, totalSU, testMode, time, timerRunning, sessionStartedAt]);
+
+      const updateLastWorkoutNames = (names) => {
+        setLastWorkoutExercises(names);
+        writeStorage(LS.LAST_NAMES, names);
       };
 
-      const startTimer = () => { setTime(0); setTimerRunning(true); };
+      const clearCurrentSession = () => {
+        setWorkout([]);
+        setOpenExercise(null);
+        setTimerRunning(false);
+        setTime(0);
+        setSessionStartedAt(null);
+        localStorage.removeItem(LS.ACTIVE);
+      };
+
+      const startTimer = () => {
+        setTime(0);
+        setSessionStartedAt(Date.now());
+        setTimerRunning(true);
+      };
 
       const stopTimer = () => {
+        const elapsedText = formatTime(time);
+        const isBellUp = history[0]?.type === "test" && time <= 1200;
+
         setTimerRunning(false);
-        alert(`Workout time: ${formatTime(time)}`);
-        if (history.length > 0) {
-          const updatedHistory = [...history];
-          updatedHistory[0].time = formatTime(time);
-          if (updatedHistory[0].type === "test" && time <= 1200) {
-            updatedHistory[0].note = "Bell Up! Completed test in under 20 minutes.";
-            alert("Bell Up! Great job — move to a heavier bell next session.");
-          }
-          setHistory(updatedHistory);
-          localStorage.setItem(LS.HISTORY, JSON.stringify(updatedHistory));
+        setSessionStartedAt(null);
+        alert(`Workout time: ${elapsedText}`);
+
+        persistHistory((prevHistory) => {
+          if (!prevHistory.length) return prevHistory;
+
+          const [latest, ...rest] = prevHistory;
+          return [
+            {
+              ...latest,
+              time: elapsedText,
+              note: isBellUp ? "Bell Up! Completed test in under 20 minutes." : latest.note
+            },
+            ...rest
+          ];
+        });
+
+        if (isBellUp) {
+          alert("Bell Up! Great job - move to a heavier bell next session.");
         }
       };
 
-      // ✅ Complete session: stop timer, keep history, clear active session
       const completeSession = () => {
         if (timerRunning) {
           if (!confirm("Timer is still running. Stop and complete?")) return;
           stopTimer();
         }
-        setWorkout([]);
-        localStorage.removeItem(LS.ACTIVE);
-        setOpenExercise(null);
+
+        clearCurrentSession();
         alert("Session cleared. Ready for the next workout.");
       };
 
-      // ❌ Discard current session without touching history
       const abandonSession = () => {
         if (!workout.length) return;
         if (!confirm("Discard the current (uncompleted) session? This also removes it from memory.")) return;
-        setWorkout([]);
-        localStorage.removeItem(LS.ACTIVE);
-        setOpenExercise(null);
+        clearCurrentSession();
       };
 
       const toggleDarkMode = () => {
-        const newMode = !darkMode;
-        setDarkMode(newMode);
-        // Toggle on <html> and helper on body
-        document.documentElement.classList.toggle("dark", newMode);
-        document.body.classList.toggle("dark", newMode);
-        localStorage.setItem(LS.THEME, newMode ? "dark" : "light");
+        const nextMode = !darkMode;
+        setDarkMode(nextMode);
+        applyTheme(nextMode);
+        localStorage.setItem(LS.THEME, nextMode ? "dark" : "light");
+      };
+
+      const generateWorkout = (note = null, suTarget = totalSU) => {
+        if (workout.length && !confirm("There is an active session. Overwrite it with a new workout?")) return;
+
+        setTimerRunning(false);
+        setTime(0);
+        setSessionStartedAt(null);
+        setOpenExercise(null);
+        setExpandedIndex(null);
+
+        if (testMode) {
+          const nextWorkout = normalizeTestWorkout();
+          setWorkout(nextWorkout);
+          saveToHistory("test", nextWorkout, note, suTarget);
+          updateLastWorkoutNames(nextWorkout.map((exercise) => exercise.name));
+          return;
+        }
+
+        const db = exerciseDatabase[level];
+        const patterns = Object.keys(db);
+        const patternCount = {};
+        const exercises = [];
+        let currentSU = 0;
+
+        patterns.forEach((pattern) => {
+          const options = getPatternOptions(db[pattern], lastWorkoutExercises);
+          const selected = pickRandom(options);
+          const suForExercise = Math.floor(Math.random() * 41) + 30;
+
+          exercises.push(createWorkoutExercise(selected, pattern, suForExercise));
+          currentSU += suForExercise;
+          patternCount[pattern] = 1;
+        });
+
+        let attempts = 0;
+        const maxAttempts = 100;
+
+        while (currentSU < suTarget - 30 && attempts < maxAttempts) {
+          attempts += 1;
+          const pattern = pickRandom(patterns);
+
+          if ((patternCount[pattern] || 0) >= 2) continue;
+
+          const suForExercise = Math.floor(Math.random() * 41) + 30;
+          if (currentSU + suForExercise > suTarget + 10) continue;
+
+          const options = getPatternOptions(db[pattern], lastWorkoutExercises);
+          const selected = pickRandom(options);
+
+          exercises.push(createWorkoutExercise(selected, pattern, suForExercise));
+          currentSU += suForExercise;
+          patternCount[pattern] = (patternCount[pattern] || 0) + 1;
+        }
+
+        const finalList = ensureNoAdjacentDuplicateExercises(shuffleArray(exercises));
+        setWorkout(finalList);
+        saveToHistory("workout", finalList, note, suTarget);
+        updateLastWorkoutNames(finalList.map((exercise) => exercise.name));
       };
 
       const handleGenerateClick = () => {
-        if (preCheckEnabled) setShowPreCheck(true);
-        else generateWorkout();
+        if (preCheckEnabled) {
+          setShowPreCheck(true);
+          return;
+        }
+
+        generateWorkout();
       };
 
       const handlePreCheckSubmit = () => {
         const score = Object.values(preCheckAnswers).filter(Boolean).length;
+
         if (score === 0) {
           alert("Recovery Day: Your body needs extra recovery today. Skip your Hellfire workout and do light mobility or stretching instead.");
           saveToHistory("recovery", []);
           setShowPreCheck(false);
           return;
         }
-        if (score === 1) setTotalSU(300);
-        else if (score === 2) setTotalSU(400);
+
+        const adjustedSU = score === 1 ? 300 : score === 2 ? 400 : 500;
+        setTotalSU(adjustedSU);
         setShowPreCheck(false);
-        generateWorkout(`Pre-check score: ${score}`);
-      };
-
-      const generateWorkout = (note = null) => {
-        const hasActive = (workout && workout.length);
-        if (hasActive && !confirm("There is an active session. Overwrite it with a new workout?")) return;
-
-        setTimerRunning(false);
-        setTime(0);
-        setOpenExercise(null);
-
-        if (testMode) {
-          setWorkout(testWorkout);
-          saveToHistory("test", testWorkout, note);
-          localStorage.setItem(LS.LAST_NAMES, JSON.stringify(testWorkout.map(e => e.name)));
-        } else {
-          const db = exerciseDatabase[level];
-          const patterns = Object.keys(db);
-          let exercises = [];
-          let currentSU = 0;
-          let patternCount = {};
-
-          // at least 1 per pattern
-          patterns.forEach(pattern => {
-            const options = db[pattern].filter(opt => !lastWorkoutExercises.includes(opt.name)) || db[pattern];
-            const exercise = options.length ? options[Math.floor(Math.random() * options.length)] : db[pattern][0];
-
-            const suForExercise = Math.floor(Math.random() * 41) + 30;
-            const reps = Math.round(suForExercise / exercise.stimulus);
-
-            currentSU += suForExercise;
-            patternCount[pattern] = 1;
-
-            exercises.push({
-              ...exercise,
-              pattern,
-              reps,
-              su: suForExercise,
-              formattedReps: exercise.unilateral
-                ? `${reps} reps (${Math.ceil(reps / 2)} per arm)`
-                : `${reps} reps`
-            });
-          });
-
-          // fill until target SU, max 2 per pattern
-          while (currentSU < totalSU - 30) {
-            const pattern = patterns[Math.floor(Math.random() * patterns.length)];
-            if (patternCount[pattern] >= 2) continue;
-
-            const options = db[pattern].filter(opt => !lastWorkoutExercises.includes(opt.name)) || db[pattern];
-            const exercise = options.length ? options[Math.floor(Math.random() * options.length)] : db[pattern][0];
-
-            const suForExercise = Math.floor(Math.random() * 41) + 30;
-            if (currentSU + suForExercise > totalSU + 10) break;
-
-            const reps = Math.round(suForExercise / exercise.stimulus);
-
-            currentSU += suForExercise;
-            patternCount[pattern] = (patternCount[pattern] || 0) + 1;
-
-            exercises.push({
-              ...exercise,
-              pattern,
-              reps,
-              su: suForExercise,
-              formattedReps: exercise.unilateral
-                ? `${reps} reps (${Math.ceil(reps / 2)} per arm)`
-                : `${reps} reps`
-            });
-          }
-
-          // 🔁 Shuffle + garanderen: geen twee dezelfde direct achter elkaar
-          const shuffled = shuffleArray(exercises);
-          const finalList = ensureNoAdjacentDuplicateExercises(shuffled);
-
-          setWorkout(finalList);
-          saveToHistory("workout", finalList, note);
-          localStorage.setItem(LS.LAST_NAMES, JSON.stringify(finalList.map(e => e.name)));
-        }
-      };
-
-      const saveToHistory = (type, workoutData, note = null) => {
-        const now = new Date();
-        const entry = {
-          date: now.toLocaleString(),
-          type,
-          level,
-          totalSU,
-          exercises: workoutData.map(ex => ({
-            name: ex.name,
-            reps: ex.reps || ex.formattedReps,
-            pattern: ex.pattern,
-            su: ex.su,
-            unilateral: ex.unilateral,
-            video: ex.video || null
-          })),
-          note
-        };
-        const updated = [entry, ...history].slice(0, 5);
-        setHistory(updated);
-        localStorage.setItem(LS.HISTORY, JSON.stringify(updated));
+        generateWorkout(`Pre-check score: ${score}`, adjustedSU);
       };
 
       const removeLastEntry = () => {
         if (!history.length) return;
         if (!confirm("Remove last workout from history?")) return;
-        const updated = history.slice(1);
-        setHistory(updated);
-        localStorage.setItem(LS.HISTORY, JSON.stringify(updated));
+        persistHistory((prevHistory) => prevHistory.slice(1));
       };
 
       const resetAll = () => {
         if (!confirm("Clear all history and the current workout?")) return;
-        setWorkout([]);
+
+        clearCurrentSession();
         setHistory([]);
+        setLastWorkoutExercises([]);
+        setExpandedIndex(null);
+        setPreCheckAnswers({ sleep: false, soreness: false, energy: false });
         localStorage.removeItem(LS.HISTORY);
         localStorage.removeItem(LS.LAST_NAMES);
-        localStorage.removeItem(LS.ACTIVE);
       };
 
       const toggleExpand = (index) => {
-        setExpandedIndex(expandedIndex === index ? null : index);
+        setExpandedIndex((current) => (current === index ? null : index));
       };
 
       return (
         <div className="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-4 sm:p-6">
-          <div className="flex justify-between mb-2">
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 bg-clip-text text-transparent">
-              KB Hellfire
-            </h1>
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-3 mb-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 bg-clip-text text-transparent">
+                KB Hellfire
+              </h1>
+              <p className="text-lg bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
+                One Bell to Burn Them All, One Calorie at a Time
+              </p>
+            </div>
+
+            <div className="flex gap-2 self-start">
               <button onClick={toggleDarkMode} className="px-3 py-1 bg-gray-700 text-white rounded text-sm">
                 {darkMode ? "Light Mode" : "Dark Mode"}
               </button>
               <button
-                onClick={() => setPreCheckEnabled(!preCheckEnabled)}
+                onClick={() => setPreCheckEnabled((current) => !current)}
                 className={`px-3 py-1 rounded text-sm ${preCheckEnabled ? "bg-green-600 text-white" : "bg-gray-300"}`}
               >
                 Pre-Check {preCheckEnabled ? "On" : "Off"}
               </button>
             </div>
           </div>
-          <p className="text-center mb-4 text-lg bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
-            One Bell to Burn Them All, One Calorie at a Time
-          </p>
 
-          {/* Tabs Normal/Test */}
           <div className="flex justify-center mb-4">
             <button
-              onClick={() => { setTestMode(false); setWorkout([]); }}
+              onClick={() => { setTestMode(false); clearCurrentSession(); }}
               className={`flex-1 px-4 py-2 rounded-l ${!testMode ? "bg-orange-600 text-white" : "bg-gray-300"}`}
             >
               Normal Workout
             </button>
             <button
-              onClick={() => { setTestMode(true); setWorkout([]); }}
+              onClick={() => { setTestMode(true); clearCurrentSession(); }}
               className={`flex-1 px-4 py-2 rounded-r ${testMode ? "bg-orange-600 text-white" : "bg-gray-300"}`}
             >
               Test Workout
             </button>
           </div>
 
-          {/* Level & SU toggles */}
           {!testMode && (
             <>
               <div className="flex flex-wrap justify-center gap-2 mb-4">
-                {["beginner", "advanced"].map((lvl) => (
+                {LEVELS.map((currentLevel) => (
                   <button
-                    key={lvl}
-                    onClick={() => setLevel(lvl)}
-                    className={`px-4 py-2 rounded text-sm ${level === lvl ? "bg-orange-600 text-white" : "bg-gray-300"}`}
+                    key={currentLevel}
+                    onClick={() => setLevel(currentLevel)}
+                    className={`px-4 py-2 rounded text-sm ${level === currentLevel ? "bg-orange-600 text-white" : "bg-gray-300"}`}
                   >
-                    {lvl}
+                    {currentLevel}
                   </button>
                 ))}
               </div>
 
               <div className="flex flex-wrap justify-center gap-2 mb-6">
-                {[300, 400, 500].map(val => (
+                {SU_OPTIONS.map((value) => (
                   <button
-                    key={val}
-                    onClick={() => setTotalSU(val)}
-                    className={`px-4 py-2 rounded text-sm ${totalSU === val ? "bg-orange-600 text-white" : "bg-gray-300"}`}
+                    key={value}
+                    onClick={() => setTotalSU(value)}
+                    className={`px-4 py-2 rounded text-sm ${totalSU === value ? "bg-orange-600 text-white" : "bg-gray-300"}`}
                   >
-                    {val} SU
+                    {value} SU
                   </button>
                 ))}
               </div>
             </>
           )}
 
-          {/* Generate button */}
           <div className="text-center mb-6">
             <button
               onClick={handleGenerateClick}
@@ -516,64 +596,62 @@
             </button>
           </div>
 
-          {/* Pre-Check Modal */}
           {showPreCheck && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-4">
               <div className="bg-white p-6 rounded shadow-md max-w-md w-full">
                 <h2 className="text-lg font-bold mb-4">Pre-Workout Check</h2>
                 <p className="mb-3 text-sm">Select if you feel well rested, energized and have minimal soreness.</p>
                 <div className="space-y-2">
-                  {["sleep", "energy", "soreness"].map(key => (
+                  {PRECHECK_KEYS.map((key) => (
                     <label key={key} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         checked={preCheckAnswers[key]}
-                        onChange={() => setPreCheckAnswers(prev => ({ ...prev, [key]: !prev[key] }))}
+                        onChange={() => setPreCheckAnswers((prev) => ({ ...prev, [key]: !prev[key] }))}
                       />
                       <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
                     </label>
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
-                  <button onClick={() => setShowPreCheck(false)} className="px-3 py-1 bg-gray-400 text-white rounded">Cancel</button>
-                  <button onClick={handlePreCheckSubmit} className="px-3 py-1 bg-orange-500 text-white rounded">Submit</button>
+                  <button onClick={() => setShowPreCheck(false)} className="px-3 py-1 bg-gray-400 text-white rounded">
+                    Cancel
+                  </button>
+                  <button onClick={handlePreCheckSubmit} className="px-3 py-1 bg-orange-500 text-white rounded">
+                    Submit
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Workout List */}
           {workout.length > 0 && (
             <>
               <ul className="space-y-3 mt-4">
                 {workout.map((exercise, index) => (
                   <li
-                    key={index}
+                    key={`${exercise.name}-${index}`}
                     className={`border rounded p-3 bg-gray-50 dark:bg-gray-800/40 ${patternColors[exercise.pattern] || ""}`}
                   >
                     <button
                       className="w-full text-left"
-                      onClick={() => setOpenExercise(openExercise === index ? null : index)}
+                      onClick={() => setOpenExercise((current) => (current === index ? null : index))}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-4">
                         <div className="text-lg font-semibold">
                           {index + 1}. {exercise.name}
                         </div>
-                        <span className="text-sm">{openExercise === index ? "▲" : "▼"}</span>
+                        <span className="text-sm">{openExercise === index ? "Close" : "Open"}</span>
                       </div>
                     </button>
 
-                    {/* 🔎 Readable reps + SU in both themes */}
                     <div className="text-md font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {exercise.unilateral
-                        ? `${exercise.reps} reps (${Math.ceil(exercise.reps / 2)} per arm)`
-                        : `${exercise.reps} reps`}
+                      {getRepsLabel(exercise.reps, exercise.unilateral)}
                       {!testMode && exercise.su && (
                         <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">({exercise.su} SU)</span>
                       )}
                     </div>
 
-                    {/* Dropdown content */}
                     {openExercise === index && (
                       <div className="mt-2">
                         {exercise.video ? (
@@ -584,7 +662,7 @@
                             className="link-pill hover:bg-orange-50 dark:hover:bg-gray-700"
                             title="Watch demo"
                           >
-                            ▶︎ Watch demo (YouTube)
+                            Watch demo (YouTube)
                           </a>
                         ) : (
                           <span className="text-sm italic text-gray-500 dark:text-gray-300">No video link available</span>
@@ -595,7 +673,6 @@
                 ))}
               </ul>
 
-              {/* Timer + Session controls */}
               <div className="text-center mt-4 space-x-2">
                 {!timerRunning && (
                   <button onClick={startTimer} className="px-4 py-2 bg-green-600 text-white rounded">
@@ -615,7 +692,7 @@
                 )}
               </div>
 
-              <div className="flex justify-center gap-2 mt-3">
+              <div className="flex flex-wrap justify-center gap-2 mt-3">
                 <button onClick={completeSession} className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded">
                   Complete (save & clear)
                 </button>
@@ -626,42 +703,46 @@
             </>
           )}
 
-          {/* History */}
           {history.length > 0 && (
             <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-900/50 rounded border text-sm">
               <h2 className="font-bold mb-2">History (last 5)</h2>
               <ul className="space-y-2">
-                {history.map((h, i) => (
-                  <li key={i} className="border rounded p-2">
-                    <div className="flex justify-between cursor-pointer" onClick={() => toggleExpand(i)}>
+                {history.map((entry, index) => (
+                  <li key={`${entry.date}-${index}`} className="border rounded p-2">
+                    <div className="flex justify-between gap-3 cursor-pointer" onClick={() => toggleExpand(index)}>
                       <span>
-                        {h.date} – {h.type === "test"
+                        {entry.date} -{" "}
+                        {entry.type === "test"
                           ? <span className="text-gray-600 dark:text-gray-300 font-semibold">Test</span>
-                          : h.type === "recovery"
+                          : entry.type === "recovery"
                             ? "Recovery Day"
-                            : h.level} ({h.totalSU} SU) {h.time ? `– ${h.time}` : ""}
+                            : entry.level}
+                        {" "}({entry.totalSU} SU)
+                        {entry.time ? ` - ${entry.time}` : ""}
                       </span>
-                      <span>{expandedIndex === i ? "▲" : "▼"}</span>
+                      <span>{expandedIndex === index ? "Hide" : "Show"}</span>
                     </div>
 
-                    {expandedIndex === i && (
+                    {expandedIndex === index && (
                       <div className="mt-2 space-y-2">
-                        {h.note && <p className="italic">{h.note}</p>}
-                        {h.type !== "recovery" && (
+                        {entry.note && <p className="italic">{entry.note}</p>}
+                        {entry.type !== "recovery" && (
                           <div>
                             <p className="font-semibold">Exercises:</p>
                             <ul className="list-disc list-inside">
-                              {h.exercises.map((ex, idx) => (
-                                <li key={idx} className={patternColors[ex.pattern] || ""}>
+                              {entry.exercises.map((exercise, exerciseIndex) => (
+                                <li key={`${exercise.name}-${exerciseIndex}`} className={patternColors[exercise.pattern] || ""}>
                                   <span>
-                                    {ex.name} – {ex.unilateral
-                                      ? `${ex.reps} (${Math.ceil((typeof ex.reps === "number" ? ex.reps : parseInt(ex.reps)) / 2)} per arm)`
-                                      : ex.reps} {ex.su ? `(${ex.su} SU)` : ""}
+                                    {exercise.name} -{" "}
+                                    {exercise.unilateral
+                                      ? `${exercise.reps} (${Math.ceil(parseRepCount(exercise.reps) / 2)} per arm)`
+                                      : exercise.reps}
+                                    {exercise.su ? ` (${exercise.su} SU)` : ""}
                                   </span>
-                                  {ex.video && (
+                                  {exercise.video && (
                                     <a
                                       className="ml-2 text-xs underline opacity-80"
-                                      href={ex.video}
+                                      href={exercise.video}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                     >
