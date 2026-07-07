@@ -93,6 +93,7 @@
     }
 
     .hero {
+      container-type: inline-size;
       min-height: 440px;
       display: flex;
       flex-direction: column;
@@ -118,6 +119,11 @@
       gap: 16px;
       position: relative;
       z-index: 1;
+      min-width: 0;
+    }
+
+    .brand-row > div {
+      min-width: 0;
     }
 
     .logo {
@@ -141,10 +147,18 @@
 
     h1 {
       margin: 0;
-      font-size: clamp(3rem, 8vw, 7.5rem);
+      font-size: clamp(3rem, 10cqw, 6.5rem);
       line-height: 0.86;
       text-transform: uppercase;
       letter-spacing: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    @supports not (font-size: 10cqw) {
+      h1 {
+        font-size: clamp(3rem, 7vw, 5.6rem);
+      }
     }
 
     .hero-actions {
@@ -211,6 +225,42 @@
       color: #160905;
       background: linear-gradient(135deg, var(--ember-2), var(--ember), var(--red));
       box-shadow: 0 8px 26px rgba(255, 78, 18, 0.28);
+    }
+
+    .bell-field {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: stretch;
+      padding: 5px;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line-soft);
+    }
+
+    .bell-field input {
+      min-width: 0;
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 10px 13px;
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.24);
+      font-weight: 850;
+      outline: none;
+    }
+
+    .bell-field input:focus {
+      border-color: var(--line);
+      box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.16);
+    }
+
+    .bell-field .unit {
+      display: grid;
+      place-items: center;
+      min-width: 48px;
+      color: var(--muted);
+      font-weight: 850;
     }
 
     .primary {
@@ -723,13 +773,21 @@
 
           <div>
             <div class="field-label">Bell weight</div>
-            <div class="segmented six" id="bellControl">
-              <button data-bell="12">12 kg</button>
-              <button data-bell="16" class="active">16 kg</button>
-              <button data-bell="20">20 kg</button>
-              <button data-bell="24">24 kg</button>
-              <button data-bell="28">28 kg</button>
-              <button data-bell="32">32 kg</button>
+            <div class="bell-field">
+              <input id="bellInput" type="number" inputmode="decimal" min="4" max="80" step="1" list="bellPresets" value="16" aria-label="Bell weight in kilograms" />
+              <span class="unit">kg</span>
+              <datalist id="bellPresets">
+                <option value="12"></option>
+                <option value="16"></option>
+                <option value="20"></option>
+                <option value="24"></option>
+                <option value="28"></option>
+                <option value="32"></option>
+                <option value="36"></option>
+                <option value="40"></option>
+                <option value="44"></option>
+                <option value="48"></option>
+              </datalist>
             </div>
           </div>
 
@@ -854,7 +912,7 @@
   <script>
     const HISTORY_LIMIT = 5;
     const AUTO_SU_SEQUENCE = [500, 300, 400];
-    const BELL_OPTIONS = [12, 16, 20, 24, 28, 32];
+    const BELL_OPTIONS = [12, 16, 20, 24, 28, 32, 36, 40, 44, 48];
     const TEST_INTERVAL_MS = 28 * 24 * 60 * 60 * 1000;
     const BELL_UP_SECONDS = 20 * 60;
     const LS = {
@@ -997,6 +1055,12 @@
       localStorage.setItem(key, JSON.stringify(value));
     }
 
+    function normalizeBellWeight(value, fallback = state.bellKg) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.min(80, Math.max(4, Math.round(parsed)));
+    }
+
     function saveSettings() {
       write(LS.SETTINGS, {
         mode: state.mode,
@@ -1066,8 +1130,8 @@
     }
 
     function nextBell(current = state.bellKg) {
-      const index = BELL_OPTIONS.indexOf(Number(current));
-      return BELL_OPTIONS[Math.min(index + 1, BELL_OPTIONS.length - 1)] || current;
+      const currentBell = normalizeBellWeight(current);
+      return BELL_OPTIONS.find((bell) => bell > currentBell) || currentBell;
     }
 
     function daysUntilNextTest() {
@@ -1445,7 +1509,7 @@
       $$("#modeControl button").forEach((button) => button.classList.toggle("active", button.dataset.mode === state.mode));
       $$("#levelControl button").forEach((button) => button.classList.toggle("active", button.dataset.level === state.level));
       $$("#suControl button").forEach((button) => button.classList.toggle("active", Number(button.dataset.su) === state.targetSU));
-      $$("#bellControl button").forEach((button) => button.classList.toggle("active", Number(button.dataset.bell) === state.bellKg));
+      $("#bellInput").value = state.bellKg;
       $("#normalControls").style.display = "block";
       $("#suControls").style.display = state.mode === "normal" ? "block" : "none";
 
@@ -1653,7 +1717,7 @@
         state.suMode = state.mode === "progression" ? "auto" : "fixed";
         state.targetSU = settings.targetSU || state.targetSU;
         state.autoIndex = Number.isInteger(settings.autoIndex) ? settings.autoIndex : state.autoIndex;
-        state.bellKg = BELL_OPTIONS.includes(Number(settings.bellKg)) ? Number(settings.bellKg) : state.bellKg;
+        state.bellKg = normalizeBellWeight(settings.bellKg, state.bellKg);
       }
       const active = safeRead(LS.ACTIVE, null);
       if (active?.workout?.length) {
@@ -1662,7 +1726,7 @@
         state.suMode = state.mode === "progression" ? "auto" : "fixed";
         state.targetSU = active.targetSU || 300;
         state.autoIndex = Number.isInteger(active.autoIndex) ? active.autoIndex : state.autoIndex;
-        state.bellKg = BELL_OPTIONS.includes(Number(active.bellKg)) ? Number(active.bellKg) : state.bellKg;
+        state.bellKg = normalizeBellWeight(active.bellKg, state.bellKg);
         state.sessionType = active.sessionType || "workout";
         state.workout = active.workout;
         state.seconds = active.seconds || 0;
@@ -1758,14 +1822,17 @@
         renderStats();
       });
 
-      $("#bellControl").addEventListener("click", (event) => {
-        const button = event.target.closest("button[data-bell]");
-        if (!button) return;
-        state.bellKg = Number(button.dataset.bell);
+      const updateBellFromInput = () => {
+        const nextBellKg = normalizeBellWeight($("#bellInput").value, state.bellKg);
+        state.bellKg = nextBellKg;
+        $("#bellInput").value = nextBellKg;
         saveSettings();
-        renderControls();
         renderStats();
-      });
+        persistActive();
+      };
+
+      $("#bellInput").addEventListener("change", updateBellFromInput);
+      $("#bellInput").addEventListener("blur", updateBellFromInput);
 
       $("#timerBtn").addEventListener("click", () => {
         state.timerRunning ? stopTimer(true) : startTimer();
