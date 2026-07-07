@@ -2,55 +2,736 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light dark" />
-  <title>KB Hellfire</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: "class" };
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#080605" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Hellfire" />
+  <title>Hellfire</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="logo-hellfire.png" />
+  <link rel="apple-touch-icon" href="logo-hellfire.png" />
   <style>
-    body.dark { background-color: #111; color: #eee; }
-    .dark .bg-white { background-color: #222 !important; }
-    .dark .bg-gray-100 { background-color: #333 !important; }
-    .dark .bg-gray-50 { background-color: #222 !important; }
-    .link-pill {
-      display: inline-block;
-      padding: 0.4rem 0.6rem;
-      border-radius: 0.6rem;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+    :root {
+      color-scheme: dark;
+      --bg: #070504;
+      --panel: rgba(16, 14, 13, 0.82);
+      --panel-solid: #12100f;
+      --panel-strong: rgba(24, 21, 19, 0.92);
+      --line: rgba(255, 117, 41, 0.22);
+      --line-soft: rgba(255, 255, 255, 0.1);
+      --text: #fff4e8;
+      --muted: #c7b8aa;
+      --dim: #88796c;
+      --ember: #ff5a1f;
+      --ember-2: #ff9f1f;
+      --red: #dc2417;
+      --green: #46c46b;
+      --yellow: #ffc85a;
+      --shadow: 0 22px 70px rgba(0, 0, 0, 0.52);
+      --radius: 8px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    .dark .link-pill { border-color: rgba(255, 255, 255, 0.15); }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(7, 5, 4, 0.96), rgba(7, 5, 4, 0.72) 44%, rgba(7, 5, 4, 0.86)),
+        linear-gradient(180deg, rgba(7, 5, 4, 0.8), rgba(7, 5, 4, 0.98)),
+        url("background-hellfire.png") center top / cover fixed no-repeat;
+      color: var(--text);
+      font-family: var(--font);
+      letter-spacing: 0;
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 22px 0 44px;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .hero,
+    .panel,
+    .exercise,
+    .history-item,
+    .modal-card {
+      border: 1px solid var(--line);
+      background: linear-gradient(145deg, rgba(20, 17, 15, 0.9), rgba(8, 7, 6, 0.78));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .hero {
+      min-height: 440px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(22px, 4vw, 44px);
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -30% 28%;
+      height: 280px;
+      background: radial-gradient(circle, rgba(255, 88, 20, 0.25), transparent 68%);
+      pointer-events: none;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 42px rgba(255, 78, 18, 0.42);
+    }
+
+    .eyebrow,
+    .stat-label,
+    .meta,
+    .field-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3rem, 8vw, 7.5rem);
+      line-height: 0.86;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .tagline {
+      max-width: 680px;
+      margin: 24px 0 0;
+      color: #ffe2c7;
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      line-height: 1.45;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+      margin-top: 28px;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    .control-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 5px;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line-soft);
+    }
+
+    .segmented.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .segmented button,
+    .ghost,
+    .primary,
+    .danger,
+    .quiet {
+      min-height: 42px;
+      border-radius: 6px;
+      padding: 10px 13px;
+      color: var(--text);
+      font-weight: 850;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .segmented button {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+    }
+
+    .segmented button.active {
+      color: #160905;
+      background: linear-gradient(135deg, var(--ember-2), var(--ember), var(--red));
+      box-shadow: 0 8px 26px rgba(255, 78, 18, 0.28);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--ember-2), var(--ember), var(--red));
+      color: #170806;
+      box-shadow: 0 12px 36px rgba(255, 75, 20, 0.32);
+    }
+
+    .ghost,
+    .quiet {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .danger {
+      color: #ffe4df;
+      border: 1px solid rgba(255, 75, 55, 0.45);
+      background: rgba(180, 32, 22, 0.28);
+    }
+
+    .primary:hover,
+    .ghost:hover,
+    .danger:hover,
+    .quiet:hover,
+    .segmented button:hover {
+      transform: translateY(-1px);
+    }
+
+    .toggle-row,
+    .session-toolbar,
+    .history-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .switch {
+      width: 52px;
+      height: 30px;
+      border-radius: 999px;
+      padding: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--line-soft);
+    }
+
+    .switch span {
+      display: block;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--dim);
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .switch.on span {
+      transform: translateX(22px);
+      background: var(--ember-2);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      min-height: 88px;
+      padding: 14px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .stat-value {
+      margin-top: 7px;
+      font-size: 1.6rem;
+      font-weight: 900;
+    }
+
+    .workout-area {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .exercise {
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .exercise-main {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .index {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 90, 31, 0.12);
+      border: 1px solid var(--line);
+      color: var(--ember-2);
+      font-weight: 950;
+    }
+
+    .exercise h3 {
+      margin: 0;
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
+      line-height: 1.2;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 9px;
+    }
+
+    .chip {
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      color: #f7dcc9;
+      background: rgba(255, 255, 255, 0.055);
+      padding: 5px 9px;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .reps {
+      color: var(--ember-2);
+      font-size: 1.05rem;
+      font-weight: 950;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .empty {
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      border: 1px dashed rgba(255, 130, 58, 0.32);
+      border-radius: var(--radius);
+      color: var(--muted);
+      text-align: center;
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .session-panel {
+      position: sticky;
+      top: 16px;
+    }
+
+    .timer {
+      margin: 12px 0;
+      font-size: clamp(2.5rem, 7vw, 4.8rem);
+      line-height: 1;
+      font-weight: 950;
+      color: #fff9f0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .history {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-item {
+      border-radius: var(--radius);
+      padding: 13px;
+    }
+
+    .history-summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .history-title {
+      font-weight: 900;
+      line-height: 1.3;
+    }
+
+    .history-detail {
+      margin-top: 12px;
+      display: none;
+      color: var(--muted);
+    }
+
+    .history-item.open .history-detail {
+      display: block;
+    }
+
+    .history-detail ul {
+      padding-left: 18px;
+      margin: 8px 0 0;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, 0.72);
+      z-index: 30;
+    }
+
+    .modal.show {
+      display: grid;
+    }
+
+    .modal-card {
+      width: min(460px, 100%);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .modal-card h2 {
+      margin: 0 0 10px;
+    }
+
+    .checks {
+      display: grid;
+      gap: 9px;
+      margin: 16px 0;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--ember);
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(420px, calc(100% - 36px));
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(18, 14, 12, 0.96);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      z-index: 40;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .install {
+      display: none;
+    }
+
+    .install.show {
+      display: inline-flex;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .offline {
+      display: none;
+      color: var(--yellow);
+      font-weight: 900;
+    }
+
+    .offline.show {
+      display: inline;
+    }
+
+    @media (max-width: 880px) {
+      body {
+        background-attachment: scroll;
+        background-position: center top;
+      }
+
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        min-height: 360px;
+      }
+
+      .session-panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100% - 18px, 1180px);
+        padding-top: 10px;
+      }
+
+      .brand-row {
+        align-items: flex-start;
+      }
+
+      .logo {
+        width: 64px;
+        height: 64px;
+      }
+
+      .stats,
+      .segmented.three {
+        grid-template-columns: 1fr;
+      }
+
+      .exercise-main {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .reps {
+        grid-column: 1 / -1;
+        text-align: left;
+      }
+
+      .session-toolbar,
+      .history-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .button-row > button,
+      .hero-actions > button {
+        flex: 1 1 100%;
+      }
+    }
   </style>
 </head>
-<body class="bg-gray-100">
-  <div id="root" class="p-2 sm:p-4"></div>
+<body>
+  <main class="app">
+    <section class="shell">
+      <div>
+        <header class="hero">
+          <div>
+            <div class="brand-row">
+              <img class="logo" src="logo-hellfire.png" alt="Hellfire logo" />
+              <div>
+                <div class="eyebrow">One bell. No mercy.</div>
+                <h1>Hellfire</h1>
+              </div>
+            </div>
+            <p class="tagline">A kettlebell HIIT generator with clean tracking, brutal pacing, and a dark-only interface built for sweaty hands and readable decisions.</p>
+          </div>
 
-  <script type="text/babel">
-    const { useEffect, useRef, useState } = React;
+          <div class="hero-actions">
+            <button class="primary" id="generateBtn">Generate Workout</button>
+            <button class="ghost install" id="installBtn">Install App</button>
+            <span class="offline" id="offlineBadge">Offline ready</span>
+          </div>
+        </header>
 
+        <section class="workout-area" id="workoutArea">
+          <div class="empty">Generate a session to load the furnace.</div>
+        </section>
+      </div>
+
+      <aside class="panel session-panel">
+        <div class="control-grid">
+          <div>
+            <div class="field-label">Mode</div>
+            <div class="segmented" id="modeControl">
+              <button data-mode="normal" class="active">Normal</button>
+              <button data-mode="test">Test</button>
+            </div>
+          </div>
+
+          <div id="normalControls">
+            <div class="field-label">Level</div>
+            <div class="segmented" id="levelControl">
+              <button data-level="beginner" class="active">Beginner</button>
+              <button data-level="advanced">Advanced</button>
+            </div>
+          </div>
+
+          <div id="suControls">
+            <div class="field-label">Stimulus target</div>
+            <div class="segmented three" id="suControl">
+              <button data-su="300" class="active">300 SU</button>
+              <button data-su="400">400 SU</button>
+              <button data-su="500">500 SU</button>
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <span class="field-label">Readiness gate</span>
+            <button class="toggle" id="preCheckToggle" aria-pressed="false">
+              <span class="switch"><span></span></span>
+              <span id="preCheckLabel">Pre-check off</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Target</div>
+            <div class="stat-value" id="targetStat">300</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Actual</div>
+            <div class="stat-value" id="actualStat">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Moves</div>
+            <div class="stat-value" id="movesStat">0</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top: 14px; box-shadow: none;">
+          <div class="session-toolbar">
+            <div>
+              <div class="field-label">Timer</div>
+              <div class="timer" id="timerDisplay">0:00</div>
+            </div>
+            <div class="small" id="sessionState">No active session</div>
+          </div>
+          <div class="button-row">
+            <button class="primary" id="timerBtn" disabled>Start Timer</button>
+            <button class="ghost" id="completeBtn" disabled>Complete</button>
+            <button class="danger" id="discardBtn" disabled>Discard</button>
+          </div>
+        </div>
+
+        <section class="history">
+          <div class="history-head">
+            <div>
+              <div class="field-label">History</div>
+              <div class="small">Last five completed entries</div>
+            </div>
+            <div class="button-row">
+              <button class="quiet" id="removeLastBtn">Remove last</button>
+              <button class="danger" id="clearHistoryBtn">Clear</button>
+            </div>
+          </div>
+          <div id="historyList"></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <div class="modal" id="preCheckModal" role="dialog" aria-modal="true" aria-labelledby="preCheckTitle">
+    <div class="modal-card">
+      <h2 id="preCheckTitle">Pre-workout check</h2>
+      <p class="small">Select what is true today. Low readiness becomes recovery instead of forcing junk volume.</p>
+      <div class="checks">
+        <label class="check"><input type="checkbox" data-check="sleep" /> Slept enough</label>
+        <label class="check"><input type="checkbox" data-check="energy" /> Energy is solid</label>
+        <label class="check"><input type="checkbox" data-check="soreness" /> Soreness is manageable</label>
+      </div>
+      <div class="button-row">
+        <button class="primary" id="submitPreCheckBtn">Continue</button>
+        <button class="ghost" id="cancelPreCheckBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
     const HISTORY_LIMIT = 5;
-    const PRECHECK_KEYS = ["sleep", "energy", "soreness"];
-    const LEVELS = ["beginner", "advanced"];
-    const SU_OPTIONS = [300, 400, 500];
-
-    const patternColors = {
-      squat: "text-blue-400",
-      hinge: "text-purple-400",
-      push: "text-red-400",
-      pull: "text-green-400",
-      core: "text-yellow-400",
-      hybrid: "text-orange-400"
+    const LS = {
+      HISTORY: "hellfireHistory",
+      LAST_NAMES: "hellfireLastWorkout",
+      ACTIVE: "hellfireActiveWorkout"
     };
 
-    const LS = {
-      HISTORY: "kbInfernoHistory",
-      LAST_NAMES: "kbInfernoLastWorkout",
-      THEME: "theme",
-      ACTIVE: "kbInfernoActiveWorkout"
+    const patternColors = {
+      squat: "#67a7ff",
+      hinge: "#b785ff",
+      push: "#ff6b5d",
+      pull: "#6fe08e",
+      core: "#ffd15f",
+      hybrid: "#ff9a35"
     };
 
     const testWorkout = [
@@ -121,7 +802,7 @@
           { name: "Snatch", type: "Ballistic", stimulus: 1.6, unilateral: true, video: "https://www.youtube.com/watch?v=QsuJ6973OFc" }
         ],
         core: [
-          { name: "Turkish Get-up", type: "Grind", stimulus: 3.5, unilateral: true, special: "tgu", video: "https://www.youtube.com/watch?v=sgd8n917Zv0" },
+          { name: "Turkish Get-up", type: "Grind", stimulus: 3.5, unilateral: true, video: "https://www.youtube.com/watch?v=sgd8n917Zv0" },
           { name: "Windmill", type: "Grind", stimulus: 1.8, unilateral: true, video: "https://www.youtube.com/shorts/EZWHnzAjctU" }
         ],
         hybrid: [
@@ -131,650 +812,489 @@
       }
     };
 
-    const safeReadJSON = (key, fallback) => {
+    const state = {
+      mode: "normal",
+      level: "beginner",
+      targetSU: 300,
+      preCheck: false,
+      workout: [],
+      history: [],
+      lastWorkoutNames: [],
+      timerRunning: false,
+      seconds: 0,
+      startedAt: null,
+      note: null,
+      completed: false
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    function safeRead(key, fallback) {
       try {
         const raw = localStorage.getItem(key);
         return raw ? JSON.parse(raw) : fallback;
-      } catch (error) {
-        console.warn(`Could not read localStorage key "${key}"`, error);
+      } catch {
         return fallback;
       }
-    };
+    }
 
-    const writeStorage = (key, value) => {
+    function write(key, value) {
       localStorage.setItem(key, JSON.stringify(value));
-    };
+    }
 
-    const applyTheme = (isDark) => {
-      document.documentElement.classList.toggle("dark", isDark);
-      document.body.classList.toggle("dark", isDark);
-    };
-
-    const formatTime = (seconds) => {
+    function formatTime(seconds) {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
       return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
-    };
+    }
 
-    const getRepsLabel = (reps, unilateral) =>
-      unilateral ? `${reps} reps (${Math.ceil(reps / 2)} per arm)` : `${reps} reps`;
+    function repsLabel(reps, unilateral) {
+      return unilateral ? `${reps} reps (${Math.ceil(reps / 2)} per arm)` : `${reps} reps`;
+    }
 
-    const parseRepCount = (value) => {
-      if (typeof value === "number") return value;
-      const match = String(value).match(/\d+/);
-      return match ? Number(match[0]) : 0;
-    };
+    function pickRandom(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
 
-    const pickRandom = (items) => items[Math.floor(Math.random() * items.length)];
-
-    const shuffleArray = (array) => {
-      const arr = [...array];
+    function shuffle(items) {
+      const arr = [...items];
       for (let i = arr.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
       return arr;
-    };
+    }
 
-    const ensureNoAdjacentDuplicateExercises = (list) => {
-      if (list.length < 2) return list;
-
+    function noAdjacentDuplicates(list) {
       let arr = [...list];
-      const hasAdjacentDupes = (items) =>
-        items.some((item, idx) => idx > 0 && item.name === items[idx - 1].name);
+      const hasDupes = () => arr.some((item, index) => index > 0 && item.name === arr[index - 1].name);
+      for (let attempt = 0; attempt < 25 && hasDupes(); attempt += 1) arr = shuffle(arr);
+      if (!hasDupes()) return arr;
 
-      let attempts = 0;
-      while (hasAdjacentDupes(arr) && attempts < 20) {
-        arr = shuffleArray(arr);
-        attempts += 1;
+      for (let i = 0; i < arr.length - 1; i += 1) {
+        if (arr[i].name !== arr[i + 1].name) continue;
+        const swapIndex = arr.findIndex((item, index) => index > i + 1 && item.name !== arr[i].name);
+        if (swapIndex > -1) [arr[i + 1], arr[swapIndex]] = [arr[swapIndex], arr[i + 1]];
       }
-
-      if (hasAdjacentDupes(arr)) {
-        for (let i = 0; i < arr.length - 1; i += 1) {
-          if (arr[i].name !== arr[i + 1].name) continue;
-
-          for (let j = i + 2; j < arr.length; j += 1) {
-            if (arr[j].name === arr[i].name) continue;
-            [arr[i + 1], arr[j]] = [arr[j], arr[i + 1]];
-            break;
-          }
-        }
-      }
-
       return arr;
-    };
+    }
 
-    const getPatternOptions = (patternList, excludedNames) => {
-      const filtered = patternList.filter((exercise) => !excludedNames.includes(exercise.name));
-      return filtered.length ? filtered : patternList;
-    };
-
-    const createWorkoutExercise = (exercise, pattern, su) => {
+    function createWorkoutExercise(exercise, pattern, su) {
       const reps = Math.max(1, Math.round(su / exercise.stimulus));
-      return {
-        ...exercise,
-        pattern,
-        reps,
-        su,
-        formattedReps: getRepsLabel(reps, exercise.unilateral)
-      };
-    };
+      return { ...exercise, pattern, su, reps };
+    }
 
-    const normalizeTestWorkout = () =>
-      testWorkout.map((exercise) => ({
-        ...exercise,
-        formattedReps: getRepsLabel(exercise.reps, exercise.unilateral)
-      }));
+    function getOptions(patternList) {
+      const filtered = patternList.filter((exercise) => !state.lastWorkoutNames.includes(exercise.name));
+      return filtered.length ? filtered : patternList;
+    }
 
-    function App() {
-      const [level, setLevel] = useState("beginner");
-      const [totalSU, setTotalSU] = useState(300);
-      const [testMode, setTestMode] = useState(false);
-      const [workout, setWorkout] = useState([]);
-      const [history, setHistory] = useState([]);
-      const [expandedIndex, setExpandedIndex] = useState(null);
-      const [openExercise, setOpenExercise] = useState(null);
-      const [darkMode, setDarkMode] = useState(false);
-      const [lastWorkoutExercises, setLastWorkoutExercises] = useState([]);
-      const [preCheckEnabled, setPreCheckEnabled] = useState(false);
-      const [showPreCheck, setShowPreCheck] = useState(false);
-      const [preCheckAnswers, setPreCheckAnswers] = useState({
-        sleep: false,
-        soreness: false,
-        energy: false
-      });
-      const [timerRunning, setTimerRunning] = useState(false);
-      const [time, setTime] = useState(0);
-      const [sessionStartedAt, setSessionStartedAt] = useState(null);
-      const intervalRef = useRef(null);
+    function actualSU(workout = state.workout) {
+      return workout.reduce((sum, exercise) => sum + (exercise.su || 0), 0);
+    }
 
-      const persistHistory = (updater) => {
-        setHistory((prevHistory) => {
-          const nextHistory = typeof updater === "function" ? updater(prevHistory) : updater;
-          writeStorage(LS.HISTORY, nextHistory);
-          return nextHistory;
-        });
-      };
+    function generateWorkout(note = null, target = state.targetSU) {
+      stopTimer(false);
+      state.seconds = 0;
+      state.note = note;
+      state.completed = false;
 
-      const saveToHistory = (type, workoutData, note = null, suValue = totalSU) => {
-        const entry = {
-          date: new Date().toLocaleString(),
-          type,
-          level,
-          totalSU: suValue,
-          exercises: workoutData.map((exercise) => ({
-            name: exercise.name,
-            reps: exercise.reps ?? exercise.formattedReps,
-            pattern: exercise.pattern,
-            su: exercise.su,
-            unilateral: exercise.unilateral,
-            video: exercise.video || null
-          })),
-          note
-        };
-
-        persistHistory((prevHistory) => [entry, ...prevHistory].slice(0, HISTORY_LIMIT));
-      };
-
-      useEffect(() => {
-        const savedHistory = safeReadJSON(LS.HISTORY, []);
-        const theme = localStorage.getItem(LS.THEME) || "light";
-        const lastExercises = safeReadJSON(LS.LAST_NAMES, []);
-        const active = safeReadJSON(LS.ACTIVE, null);
-
-        setHistory(Array.isArray(savedHistory) ? savedHistory : []);
-        setDarkMode(theme === "dark");
-        applyTheme(theme === "dark");
-        setLastWorkoutExercises(Array.isArray(lastExercises) ? lastExercises : []);
-
-        if (active && Array.isArray(active.workout) && active.workout.length) {
-          const restoredStartedAt = typeof active.startedAt === "number" ? active.startedAt : null;
-          const restoredTime =
-            active.timerRunning && restoredStartedAt
-              ? Math.max(active.time ?? 0, Math.floor((Date.now() - restoredStartedAt) / 1000))
-              : active.time ?? 0;
-
-          setWorkout(active.workout);
-          setLevel(active.level ?? "beginner");
-          setTotalSU(active.totalSU ?? 300);
-          setTestMode(Boolean(active.testMode));
-          setTime(restoredTime);
-          setTimerRunning(Boolean(active.timerRunning));
-          setSessionStartedAt(restoredStartedAt);
-        }
-      }, []);
-
-      useEffect(() => {
-        if (!timerRunning) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          return;
-        }
-
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(() => {
-          setTime((prev) => prev + 1);
-        }, 1000);
-
-        return () => {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-        };
-      }, [timerRunning]);
-
-      useEffect(() => {
-        if (!workout.length) {
-          localStorage.removeItem(LS.ACTIVE);
-          return;
-        }
-
-        writeStorage(LS.ACTIVE, {
-          workout,
-          level,
-          totalSU,
-          testMode,
-          time,
-          timerRunning,
-          startedAt: sessionStartedAt
-        });
-      }, [workout, level, totalSU, testMode, time, timerRunning, sessionStartedAt]);
-
-      const updateLastWorkoutNames = (names) => {
-        setLastWorkoutExercises(names);
-        writeStorage(LS.LAST_NAMES, names);
-      };
-
-      const clearCurrentSession = () => {
-        setWorkout([]);
-        setOpenExercise(null);
-        setTimerRunning(false);
-        setTime(0);
-        setSessionStartedAt(null);
-        localStorage.removeItem(LS.ACTIVE);
-      };
-
-      const startTimer = () => {
-        setTime(0);
-        setSessionStartedAt(Date.now());
-        setTimerRunning(true);
-      };
-
-      const stopTimer = () => {
-        const elapsedText = formatTime(time);
-        const isBellUp = history[0]?.type === "test" && time <= 1200;
-
-        setTimerRunning(false);
-        setSessionStartedAt(null);
-        alert(`Workout time: ${elapsedText}`);
-
-        persistHistory((prevHistory) => {
-          if (!prevHistory.length) return prevHistory;
-
-          const [latest, ...rest] = prevHistory;
-          return [
-            {
-              ...latest,
-              time: elapsedText,
-              note: isBellUp ? "Bell Up! Completed test in under 20 minutes." : latest.note
-            },
-            ...rest
-          ];
-        });
-
-        if (isBellUp) {
-          alert("Bell Up! Great job - move to a heavier bell next session.");
-        }
-      };
-
-      const completeSession = () => {
-        if (timerRunning) {
-          if (!confirm("Timer is still running. Stop and complete?")) return;
-          stopTimer();
-        }
-
-        clearCurrentSession();
-        alert("Session cleared. Ready for the next workout.");
-      };
-
-      const abandonSession = () => {
-        if (!workout.length) return;
-        if (!confirm("Discard the current (uncompleted) session? This also removes it from memory.")) return;
-        clearCurrentSession();
-      };
-
-      const toggleDarkMode = () => {
-        const nextMode = !darkMode;
-        setDarkMode(nextMode);
-        applyTheme(nextMode);
-        localStorage.setItem(LS.THEME, nextMode ? "dark" : "light");
-      };
-
-      const generateWorkout = (note = null, suTarget = totalSU) => {
-        if (workout.length && !confirm("There is an active session. Overwrite it with a new workout?")) return;
-
-        setTimerRunning(false);
-        setTime(0);
-        setSessionStartedAt(null);
-        setOpenExercise(null);
-        setExpandedIndex(null);
-
-        if (testMode) {
-          const nextWorkout = normalizeTestWorkout();
-          setWorkout(nextWorkout);
-          saveToHistory("test", nextWorkout, note, suTarget);
-          updateLastWorkoutNames(nextWorkout.map((exercise) => exercise.name));
-          return;
-        }
-
-        const db = exerciseDatabase[level];
+      if (state.mode === "test") {
+        state.workout = testWorkout.map((exercise) => ({ ...exercise, su: null }));
+        state.targetSU = target;
+      } else {
+        const db = exerciseDatabase[state.level];
         const patterns = Object.keys(db);
         const patternCount = {};
         const exercises = [];
         let currentSU = 0;
 
         patterns.forEach((pattern) => {
-          const options = getPatternOptions(db[pattern], lastWorkoutExercises);
-          const selected = pickRandom(options);
-          const suForExercise = Math.floor(Math.random() * 41) + 30;
-
-          exercises.push(createWorkoutExercise(selected, pattern, suForExercise));
-          currentSU += suForExercise;
+          const su = Math.floor(Math.random() * 41) + 30;
+          exercises.push(createWorkoutExercise(pickRandom(getOptions(db[pattern])), pattern, su));
+          currentSU += su;
           patternCount[pattern] = 1;
         });
 
-        let attempts = 0;
-        const maxAttempts = 100;
-
-        while (currentSU < suTarget - 30 && attempts < maxAttempts) {
-          attempts += 1;
+        for (let attempts = 0; currentSU < target - 30 && attempts < 140; attempts += 1) {
           const pattern = pickRandom(patterns);
-
           if ((patternCount[pattern] || 0) >= 2) continue;
 
-          const suForExercise = Math.floor(Math.random() * 41) + 30;
-          if (currentSU + suForExercise > suTarget + 10) continue;
+          const su = Math.floor(Math.random() * 41) + 30;
+          if (currentSU + su > target + 10) continue;
 
-          const options = getPatternOptions(db[pattern], lastWorkoutExercises);
-          const selected = pickRandom(options);
-
-          exercises.push(createWorkoutExercise(selected, pattern, suForExercise));
-          currentSU += suForExercise;
+          exercises.push(createWorkoutExercise(pickRandom(getOptions(db[pattern])), pattern, su));
+          currentSU += su;
           patternCount[pattern] = (patternCount[pattern] || 0) + 1;
         }
 
-        const finalList = ensureNoAdjacentDuplicateExercises(shuffleArray(exercises));
-        setWorkout(finalList);
-        saveToHistory("workout", finalList, note, suTarget);
-        updateLastWorkoutNames(finalList.map((exercise) => exercise.name));
-      };
+        state.workout = noAdjacentDuplicates(shuffle(exercises));
+      }
 
-      const handleGenerateClick = () => {
-        if (preCheckEnabled) {
-          setShowPreCheck(true);
-          return;
-        }
-
-        generateWorkout();
-      };
-
-      const handlePreCheckSubmit = () => {
-        const score = Object.values(preCheckAnswers).filter(Boolean).length;
-
-        if (score === 0) {
-          alert("Recovery Day: Your body needs extra recovery today. Skip your Hellfire workout and do light mobility or stretching instead.");
-          saveToHistory("recovery", []);
-          setShowPreCheck(false);
-          return;
-        }
-
-        const adjustedSU = score === 1 ? 300 : score === 2 ? 400 : 500;
-        setTotalSU(adjustedSU);
-        setShowPreCheck(false);
-        generateWorkout(`Pre-check score: ${score}`, adjustedSU);
-      };
-
-      const removeLastEntry = () => {
-        if (!history.length) return;
-        if (!confirm("Remove last workout from history?")) return;
-        persistHistory((prevHistory) => prevHistory.slice(1));
-      };
-
-      const resetAll = () => {
-        if (!confirm("Clear all history and the current workout?")) return;
-
-        clearCurrentSession();
-        setHistory([]);
-        setLastWorkoutExercises([]);
-        setExpandedIndex(null);
-        setPreCheckAnswers({ sleep: false, soreness: false, energy: false });
-        localStorage.removeItem(LS.HISTORY);
-        localStorage.removeItem(LS.LAST_NAMES);
-      };
-
-      const toggleExpand = (index) => {
-        setExpandedIndex((current) => (current === index ? null : index));
-      };
-
-      return (
-        <div className="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-4 sm:p-6">
-          <div className="flex flex-col gap-3 mb-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 bg-clip-text text-transparent">
-                KB Hellfire
-              </h1>
-              <p className="text-lg bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
-                One Bell to Burn Them All, One Calorie at a Time
-              </p>
-            </div>
-
-            <div className="flex gap-2 self-start">
-              <button onClick={toggleDarkMode} className="px-3 py-1 bg-gray-700 text-white rounded text-sm">
-                {darkMode ? "Light Mode" : "Dark Mode"}
-              </button>
-              <button
-                onClick={() => setPreCheckEnabled((current) => !current)}
-                className={`px-3 py-1 rounded text-sm ${preCheckEnabled ? "bg-green-600 text-white" : "bg-gray-300"}`}
-              >
-                Pre-Check {preCheckEnabled ? "On" : "Off"}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex justify-center mb-4">
-            <button
-              onClick={() => { setTestMode(false); clearCurrentSession(); }}
-              className={`flex-1 px-4 py-2 rounded-l ${!testMode ? "bg-orange-600 text-white" : "bg-gray-300"}`}
-            >
-              Normal Workout
-            </button>
-            <button
-              onClick={() => { setTestMode(true); clearCurrentSession(); }}
-              className={`flex-1 px-4 py-2 rounded-r ${testMode ? "bg-orange-600 text-white" : "bg-gray-300"}`}
-            >
-              Test Workout
-            </button>
-          </div>
-
-          {!testMode && (
-            <>
-              <div className="flex flex-wrap justify-center gap-2 mb-4">
-                {LEVELS.map((currentLevel) => (
-                  <button
-                    key={currentLevel}
-                    onClick={() => setLevel(currentLevel)}
-                    className={`px-4 py-2 rounded text-sm ${level === currentLevel ? "bg-orange-600 text-white" : "bg-gray-300"}`}
-                  >
-                    {currentLevel}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-2 mb-6">
-                {SU_OPTIONS.map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => setTotalSU(value)}
-                    className={`px-4 py-2 rounded text-sm ${totalSU === value ? "bg-orange-600 text-white" : "bg-gray-300"}`}
-                  >
-                    {value} SU
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          <div className="text-center mb-6">
-            <button
-              onClick={handleGenerateClick}
-              className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg"
-            >
-              Generate Workout
-            </button>
-          </div>
-
-          {showPreCheck && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-4">
-              <div className="bg-white p-6 rounded shadow-md max-w-md w-full">
-                <h2 className="text-lg font-bold mb-4">Pre-Workout Check</h2>
-                <p className="mb-3 text-sm">Select if you feel well rested, energized and have minimal soreness.</p>
-                <div className="space-y-2">
-                  {PRECHECK_KEYS.map((key) => (
-                    <label key={key} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={preCheckAnswers[key]}
-                        onChange={() => setPreCheckAnswers((prev) => ({ ...prev, [key]: !prev[key] }))}
-                      />
-                      <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex justify-end gap-2 mt-4">
-                  <button onClick={() => setShowPreCheck(false)} className="px-3 py-1 bg-gray-400 text-white rounded">
-                    Cancel
-                  </button>
-                  <button onClick={handlePreCheckSubmit} className="px-3 py-1 bg-orange-500 text-white rounded">
-                    Submit
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {workout.length > 0 && (
-            <>
-              <ul className="space-y-3 mt-4">
-                {workout.map((exercise, index) => (
-                  <li
-                    key={`${exercise.name}-${index}`}
-                    className={`border rounded p-3 bg-gray-50 dark:bg-gray-800/40 ${patternColors[exercise.pattern] || ""}`}
-                  >
-                    <button
-                      className="w-full text-left"
-                      onClick={() => setOpenExercise((current) => (current === index ? null : index))}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="text-lg font-semibold">
-                          {index + 1}. {exercise.name}
-                        </div>
-                        <span className="text-sm">{openExercise === index ? "Close" : "Open"}</span>
-                      </div>
-                    </button>
-
-                    <div className="text-md font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {getRepsLabel(exercise.reps, exercise.unilateral)}
-                      {!testMode && exercise.su && (
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">({exercise.su} SU)</span>
-                      )}
-                    </div>
-
-                    {openExercise === index && (
-                      <div className="mt-2">
-                        {exercise.video ? (
-                          <a
-                            href={exercise.video}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="link-pill hover:bg-orange-50 dark:hover:bg-gray-700"
-                            title="Watch demo"
-                          >
-                            Watch demo (YouTube)
-                          </a>
-                        ) : (
-                          <span className="text-sm italic text-gray-500 dark:text-gray-300">No video link available</span>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="text-center mt-4 space-x-2">
-                {!timerRunning && (
-                  <button onClick={startTimer} className="px-4 py-2 bg-green-600 text-white rounded">
-                    Start Timer
-                  </button>
-                )}
-                {timerRunning && (
-                  <div className="inline-flex items-center gap-3">
-                    <div className="text-xl font-bold my-2">{formatTime(time)}</div>
-                    <button onClick={stopTimer} className="px-4 py-2 bg-red-600 text-white rounded">
-                      Stop Timer
-                    </button>
-                  </div>
-                )}
-                {!timerRunning && time > 0 && (
-                  <span className="inline-block text-sm align-middle ml-2">{formatTime(time)}</span>
-                )}
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-2 mt-3">
-                <button onClick={completeSession} className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded">
-                  Complete (save & clear)
-                </button>
-                <button onClick={abandonSession} className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded">
-                  Discard current
-                </button>
-              </div>
-            </>
-          )}
-
-          {history.length > 0 && (
-            <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-900/50 rounded border text-sm">
-              <h2 className="font-bold mb-2">History (last 5)</h2>
-              <ul className="space-y-2">
-                {history.map((entry, index) => (
-                  <li key={`${entry.date}-${index}`} className="border rounded p-2">
-                    <div className="flex justify-between gap-3 cursor-pointer" onClick={() => toggleExpand(index)}>
-                      <span>
-                        {entry.date} -{" "}
-                        {entry.type === "test"
-                          ? <span className="text-gray-600 dark:text-gray-300 font-semibold">Test</span>
-                          : entry.type === "recovery"
-                            ? "Recovery Day"
-                            : entry.level}
-                        {" "}({entry.totalSU} SU)
-                        {entry.time ? ` - ${entry.time}` : ""}
-                      </span>
-                      <span>{expandedIndex === index ? "Hide" : "Show"}</span>
-                    </div>
-
-                    {expandedIndex === index && (
-                      <div className="mt-2 space-y-2">
-                        {entry.note && <p className="italic">{entry.note}</p>}
-                        {entry.type !== "recovery" && (
-                          <div>
-                            <p className="font-semibold">Exercises:</p>
-                            <ul className="list-disc list-inside">
-                              {entry.exercises.map((exercise, exerciseIndex) => (
-                                <li key={`${exercise.name}-${exerciseIndex}`} className={patternColors[exercise.pattern] || ""}>
-                                  <span>
-                                    {exercise.name} -{" "}
-                                    {exercise.unilateral
-                                      ? `${exercise.reps} (${Math.ceil(parseRepCount(exercise.reps) / 2)} per arm)`
-                                      : exercise.reps}
-                                    {exercise.su ? ` (${exercise.su} SU)` : ""}
-                                  </span>
-                                  {exercise.video && (
-                                    <a
-                                      className="ml-2 text-xs underline opacity-80"
-                                      href={exercise.video}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      demo
-                                    </a>
-                                  )}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="text-center mt-3">
-                <button onClick={removeLastEntry} className="px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm mr-2">
-                  Remove Last Entry
-                </button>
-                <button onClick={resetAll} className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm">
-                  Clear All History
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      );
+      state.lastWorkoutNames = state.workout.map((exercise) => exercise.name);
+      write(LS.LAST_NAMES, state.lastWorkoutNames);
+      persistActive();
+      render();
+      toast("Workout loaded. Complete it to save it to history.");
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    function buildHistoryEntry(type = state.mode === "test" ? "test" : "workout") {
+      return {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        date: new Date().toLocaleString(),
+        type,
+        level: state.level,
+        targetSU: state.targetSU,
+        actualSU: actualSU(),
+        time: state.seconds ? formatTime(state.seconds) : null,
+        note: state.note,
+        exercises: state.workout.map((exercise) => ({
+          name: exercise.name,
+          reps: exercise.reps,
+          pattern: exercise.pattern,
+          su: exercise.su,
+          unilateral: exercise.unilateral,
+          video: exercise.video || null
+        }))
+      };
+    }
+
+    function saveHistoryEntry(entry) {
+      state.history = [entry, ...state.history].slice(0, HISTORY_LIMIT);
+      write(LS.HISTORY, state.history);
+    }
+
+    function completeSession() {
+      if (!state.workout.length) return;
+      stopTimer(false);
+      const isBellUp = state.mode === "test" && state.seconds > 0 && state.seconds <= 1200;
+      if (isBellUp) state.note = "Bell Up. Test completed in under 20 minutes.";
+      saveHistoryEntry(buildHistoryEntry());
+      clearActiveSession();
+      toast(isBellUp ? "Bell Up. Saved and cleared." : "Session saved and cleared.");
+    }
+
+    function clearActiveSession() {
+      state.workout = [];
+      state.timerRunning = false;
+      state.seconds = 0;
+      state.startedAt = null;
+      state.note = null;
+      state.completed = false;
+      localStorage.removeItem(LS.ACTIVE);
+      render();
+    }
+
+    function discardSession() {
+      if (!state.workout.length) return;
+      if (!confirm("Discard the current session? It will not be saved to history.")) return;
+      clearActiveSession();
+      toast("Session discarded.");
+    }
+
+    function persistActive() {
+      if (!state.workout.length) {
+        localStorage.removeItem(LS.ACTIVE);
+        return;
+      }
+
+      write(LS.ACTIVE, {
+        mode: state.mode,
+        level: state.level,
+        targetSU: state.targetSU,
+        workout: state.workout,
+        seconds: state.seconds,
+        timerRunning: state.timerRunning,
+        startedAt: state.startedAt,
+        note: state.note
+      });
+    }
+
+    function startTimer() {
+      if (!state.workout.length) return;
+      state.timerRunning = true;
+      state.startedAt = Date.now() - state.seconds * 1000;
+      persistActive();
+      render();
+    }
+
+    function stopTimer(showMessage = true) {
+      if (!state.timerRunning) return;
+      state.seconds = Math.max(state.seconds, Math.floor((Date.now() - state.startedAt) / 1000));
+      state.timerRunning = false;
+      state.startedAt = null;
+      persistActive();
+      if (showMessage) toast(`Workout time: ${formatTime(state.seconds)}`);
+      render();
+    }
+
+    function tick() {
+      if (!state.timerRunning || !state.startedAt) return;
+      state.seconds = Math.floor((Date.now() - state.startedAt) / 1000);
+      $("#timerDisplay").textContent = formatTime(state.seconds);
+      persistActive();
+    }
+
+    function render() {
+      renderControls();
+      renderStats();
+      renderWorkout();
+      renderHistory();
+      renderSession();
+    }
+
+    function renderControls() {
+      $$("#modeControl button").forEach((button) => button.classList.toggle("active", button.dataset.mode === state.mode));
+      $$("#levelControl button").forEach((button) => button.classList.toggle("active", button.dataset.level === state.level));
+      $$("#suControl button").forEach((button) => button.classList.toggle("active", Number(button.dataset.su) === state.targetSU));
+      $("#normalControls").style.display = state.mode === "normal" ? "block" : "none";
+      $("#suControls").style.display = state.mode === "normal" ? "block" : "none";
+
+      const switchEl = $("#preCheckToggle .switch");
+      switchEl.classList.toggle("on", state.preCheck);
+      $("#preCheckToggle").setAttribute("aria-pressed", String(state.preCheck));
+      $("#preCheckLabel").textContent = state.preCheck ? "Pre-check on" : "Pre-check off";
+    }
+
+    function renderStats() {
+      $("#targetStat").textContent = state.mode === "test" ? "TEST" : state.targetSU;
+      $("#actualStat").textContent = state.mode === "test" ? "-" : actualSU();
+      $("#movesStat").textContent = state.workout.length;
+    }
+
+    function renderWorkout() {
+      const area = $("#workoutArea");
+      if (!state.workout.length) {
+        area.innerHTML = '<div class="empty">Generate a session to load the furnace.</div>';
+        return;
+      }
+
+      area.innerHTML = state.workout.map((exercise, index) => `
+        <article class="exercise">
+          <div class="exercise-main">
+            <div class="index">${index + 1}</div>
+            <div>
+              <h3>${escapeHtml(exercise.name)}</h3>
+              <div class="chips">
+                <span class="chip" style="border-color:${patternColors[exercise.pattern] || "rgba(255,255,255,.12)"}">${escapeHtml(exercise.pattern)}</span>
+                ${exercise.type ? `<span class="chip">${escapeHtml(exercise.type)}</span>` : ""}
+                ${exercise.video ? `<a class="chip" href="${exercise.video}" target="_blank" rel="noopener noreferrer">Demo</a>` : ""}
+              </div>
+            </div>
+            <div class="reps">${repsLabel(exercise.reps, exercise.unilateral)}</div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderSession() {
+      $("#timerDisplay").textContent = formatTime(state.seconds);
+      $("#sessionState").textContent = state.workout.length
+        ? state.timerRunning ? "Running" : "Session loaded"
+        : "No active session";
+      $("#timerBtn").textContent = state.timerRunning ? "Stop Timer" : state.seconds ? "Resume Timer" : "Start Timer";
+      $("#timerBtn").disabled = !state.workout.length;
+      $("#completeBtn").disabled = !state.workout.length;
+      $("#discardBtn").disabled = !state.workout.length;
+    }
+
+    function renderHistory() {
+      const list = $("#historyList");
+      if (!state.history.length) {
+        list.innerHTML = '<div class="empty" style="min-height: 110px;">No completed sessions yet.</div>';
+        return;
+      }
+
+      list.innerHTML = state.history.map((entry, index) => `
+        <article class="history-item" data-history-index="${index}">
+          <div class="history-summary">
+            <div>
+              <div class="history-title">${escapeHtml(entry.type === "recovery" ? "Recovery Day" : entry.type === "test" ? "Test Workout" : `${entry.level} workout`)}</div>
+              <div class="small">${escapeHtml(entry.date)}${entry.time ? ` · ${escapeHtml(entry.time)}` : ""} · ${entry.actualSU || entry.targetSU || 0} SU</div>
+            </div>
+            <button class="quiet" data-toggle-history="${index}">Open</button>
+          </div>
+          <div class="history-detail">
+            ${entry.note ? `<p>${escapeHtml(entry.note)}</p>` : ""}
+            ${entry.exercises?.length ? `<ul>${entry.exercises.map((exercise) => `
+              <li>${escapeHtml(exercise.name)} - ${repsLabel(exercise.reps, exercise.unilateral)}${exercise.su ? ` (${exercise.su} SU)` : ""}</li>
+            `).join("")}</ul>` : ""}
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function toast(message) {
+      const el = $("#toast");
+      el.textContent = message;
+      el.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    function openPreCheck() {
+      $("#preCheckModal").classList.add("show");
+    }
+
+    function closePreCheck() {
+      $("#preCheckModal").classList.remove("show");
+    }
+
+    function submitPreCheck() {
+      const score = $$("[data-check]").filter((input) => input.checked).length;
+      closePreCheck();
+      if (score === 0) {
+        saveHistoryEntry({
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          date: new Date().toLocaleString(),
+          type: "recovery",
+          level: state.level,
+          targetSU: 0,
+          actualSU: 0,
+          time: null,
+          note: "Recovery Day. Mobility or stretching instead of Hellfire.",
+          exercises: []
+        });
+        renderHistory();
+        toast("Recovery day saved.");
+        return;
+      }
+
+      state.targetSU = score === 1 ? 300 : score === 2 ? 400 : 500;
+      generateWorkout(`Pre-check score: ${score}`, state.targetSU);
+    }
+
+    function hydrate() {
+      state.history = safeRead(LS.HISTORY, []);
+      state.lastWorkoutNames = safeRead(LS.LAST_NAMES, []);
+      const active = safeRead(LS.ACTIVE, null);
+      if (active?.workout?.length) {
+        state.mode = active.mode || "normal";
+        state.level = active.level || "beginner";
+        state.targetSU = active.targetSU || 300;
+        state.workout = active.workout;
+        state.seconds = active.seconds || 0;
+        state.timerRunning = Boolean(active.timerRunning);
+        state.startedAt = active.startedAt || null;
+        state.note = active.note || null;
+        if (state.timerRunning && state.startedAt) {
+          state.seconds = Math.floor((Date.now() - state.startedAt) / 1000);
+        }
+      }
+    }
+
+    function bindEvents() {
+      $("#generateBtn").addEventListener("click", () => {
+        if (state.workout.length && !confirm("Overwrite the current unsaved session?")) return;
+        if (state.preCheck && state.mode === "normal") openPreCheck();
+        else generateWorkout();
+      });
+
+      $("#modeControl").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-mode]");
+        if (!button) return;
+        if (state.workout.length && !confirm("Changing mode clears the current unsaved session.")) return;
+        clearActiveSession();
+        state.mode = button.dataset.mode;
+        render();
+      });
+
+      $("#levelControl").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-level]");
+        if (!button) return;
+        state.level = button.dataset.level;
+        renderControls();
+      });
+
+      $("#suControl").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-su]");
+        if (!button) return;
+        state.targetSU = Number(button.dataset.su);
+        renderControls();
+        renderStats();
+      });
+
+      $("#preCheckToggle").addEventListener("click", () => {
+        state.preCheck = !state.preCheck;
+        renderControls();
+      });
+
+      $("#timerBtn").addEventListener("click", () => {
+        state.timerRunning ? stopTimer(true) : startTimer();
+      });
+
+      $("#completeBtn").addEventListener("click", completeSession);
+      $("#discardBtn").addEventListener("click", discardSession);
+      $("#submitPreCheckBtn").addEventListener("click", submitPreCheck);
+      $("#cancelPreCheckBtn").addEventListener("click", closePreCheck);
+
+      $("#removeLastBtn").addEventListener("click", () => {
+        if (!state.history.length) return;
+        if (!confirm("Remove the latest completed entry?")) return;
+        state.history = state.history.slice(1);
+        write(LS.HISTORY, state.history);
+        renderHistory();
+      });
+
+      $("#clearHistoryBtn").addEventListener("click", () => {
+        if (!state.history.length) return;
+        if (!confirm("Clear all completed history? Current session is untouched.")) return;
+        state.history = [];
+        localStorage.removeItem(LS.HISTORY);
+        renderHistory();
+      });
+
+      $("#historyList").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-toggle-history]");
+        if (!button) return;
+        const item = button.closest(".history-item");
+        item.classList.toggle("open");
+        button.textContent = item.classList.contains("open") ? "Close" : "Open";
+      });
+    }
+
+    async function setupPWA() {
+      if ("serviceWorker" in navigator) {
+        try {
+          await navigator.serviceWorker.register("service-worker.js");
+          $("#offlineBadge").classList.add("show");
+        } catch {
+          $("#offlineBadge").textContent = "Offline unavailable";
+          $("#offlineBadge").classList.add("show");
+        }
+      }
+
+      let installPrompt = null;
+      window.addEventListener("beforeinstallprompt", (event) => {
+        event.preventDefault();
+        installPrompt = event;
+        $("#installBtn").classList.add("show");
+      });
+
+      $("#installBtn").addEventListener("click", async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        await installPrompt.userChoice;
+        installPrompt = null;
+        $("#installBtn").classList.remove("show");
+      });
+    }
+
+    hydrate();
+    bindEvents();
+    render();
+    setupPWA();
+    setInterval(tick, 1000);
   </script>
 </body>
 </html>
