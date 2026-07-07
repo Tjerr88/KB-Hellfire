@@ -401,6 +401,21 @@
       font-weight: 850;
     }
 
+    .test-gate {
+      min-height: 260px;
+      align-content: center;
+      justify-items: center;
+      gap: 18px;
+      padding: 28px;
+    }
+
+    .test-gate .intent {
+      max-width: 660px;
+      text-align: center;
+      font-size: clamp(1.1rem, 2.2vw, 1.55rem);
+      line-height: 1.3;
+    }
+
     .empty {
       min-height: 180px;
       display: grid;
@@ -1069,7 +1084,7 @@
     }
 
     function currentIntent() {
-      if (state.sessionType === "test") return "Benchmark test. Smooth reps, honest clock, no pacing fantasy.";
+      if (state.sessionType === "test") return "Complete the following session as fast as possible, but quality above quantity.";
       if (state.mode === "progression") {
         if (state.targetSU >= 500) return "Heavy engine. Big output, clean breathing, controlled aggression.";
         if (state.targetSU >= 400) return "Density day. Keep transitions sharp and avoid junk reps.";
@@ -1105,6 +1120,10 @@
     function elapsedSeconds() {
       if (!state.timerRunning || !state.startedAt) return state.seconds;
       return Math.max(state.seconds, Math.floor((Date.now() - state.startedAt) / 1000));
+    }
+
+    function canCompleteSession() {
+      return state.workout.length && elapsedSeconds() > 0;
     }
 
     function entryTimestamp(entry) {
@@ -1223,7 +1242,7 @@
       write(LS.LAST_NAMES, state.lastWorkoutNames);
       persistActive();
       render();
-      toast(shouldRunTest ? "Benchmark test loaded. Beat 20:00 for Bell Up." : note?.includes("held") ? note : "Workout loaded. Complete it to save it to history.");
+      toast(shouldRunTest ? "Benchmark ready. Start the test session to reveal the work." : note?.includes("held") ? note : "Workout loaded. Complete it to save it to history.");
     }
 
     function buildHistoryEntry(type = state.sessionType, rpe = null) {
@@ -1263,6 +1282,10 @@
 
     function completeSession(rpe = null) {
       if (!state.workout.length) return;
+      if (!canCompleteSession()) {
+        toast("Start the timer before completing this session.");
+        return;
+      }
       state.seconds = elapsedSeconds();
       stopTimer(false);
       const isTest = state.sessionType === "test";
@@ -1383,6 +1406,10 @@
 
     function requestCompleteSession() {
       if (!state.workout.length) return;
+      if (!canCompleteSession()) {
+        toast("Start the timer before completing this session.");
+        return;
+      }
       $("#rpeModal").classList.add("show");
     }
 
@@ -1465,6 +1492,17 @@
         return;
       }
 
+      if (state.sessionType === "test" && !state.timerRunning && elapsedSeconds() === 0) {
+        area.innerHTML = `
+          <div class="empty test-gate">
+            <div class="intent">${escapeHtml(currentIntent())}</div>
+            <button class="primary" id="startTestSessionBtn">Start Test Session</button>
+          </div>
+        `;
+        $("#startTestSessionBtn").addEventListener("click", startTimer);
+        return;
+      }
+
       area.innerHTML = `<div class="intent">${escapeHtml(currentIntent())}</div>` + state.workout.map((exercise, index) => `
         <article class="exercise">
           <div class="exercise-main">
@@ -1488,11 +1526,11 @@
       const displaySeconds = elapsedSeconds();
       $("#timerDisplay").textContent = formatTime(displaySeconds);
       $("#sessionState").textContent = state.workout.length
-        ? state.timerRunning ? "Running" : state.sessionType === "test" ? "Benchmark test loaded" : "Session loaded"
+        ? state.timerRunning ? "Running" : state.sessionType === "test" && !displaySeconds ? "Benchmark ready" : state.sessionType === "test" ? "Benchmark paused" : "Session loaded"
         : "No active session";
-      $("#timerBtn").textContent = state.timerRunning ? "Stop Timer" : displaySeconds ? "Resume Timer" : "Start Timer";
+      $("#timerBtn").textContent = state.timerRunning ? "Stop Timer" : state.sessionType === "test" && !displaySeconds ? "Start Test Session" : displaySeconds ? "Resume Timer" : "Start Timer";
       $("#timerBtn").disabled = !state.workout.length;
-      $("#completeBtn").disabled = !state.workout.length;
+      $("#completeBtn").disabled = !canCompleteSession();
       $("#discardBtn").disabled = !state.workout.length;
     }
 
