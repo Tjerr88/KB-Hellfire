@@ -147,14 +147,6 @@
       letter-spacing: 0;
     }
 
-    .tagline {
-      max-width: 680px;
-      margin: 24px 0 0;
-      color: #ffe2c7;
-      font-size: clamp(1.05rem, 2vw, 1.35rem);
-      line-height: 1.45;
-    }
-
     .hero-actions {
       display: flex;
       flex-wrap: wrap;
@@ -186,6 +178,10 @@
 
     .segmented.three {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .segmented.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .segmented button,
@@ -562,7 +558,8 @@
       }
 
       .stats,
-      .segmented.three {
+      .segmented.three,
+      .segmented.four {
         grid-template-columns: 1fr;
       }
 
@@ -601,7 +598,6 @@
                 <h1>Hellfire</h1>
               </div>
             </div>
-            <p class="tagline">A kettlebell HIIT generator with clean tracking, brutal pacing, and a dark-only interface built for sweaty hands and readable decisions.</p>
           </div>
 
           <div class="hero-actions">
@@ -621,8 +617,8 @@
           <div>
             <div class="field-label">Mode</div>
             <div class="segmented" id="modeControl">
-              <button data-mode="normal" class="active">Normal</button>
-              <button data-mode="test">Test</button>
+              <button data-mode="normal">Normal</button>
+              <button data-mode="progression" class="active">Progression</button>
             </div>
           </div>
 
@@ -719,10 +715,15 @@
 
   <script>
     const HISTORY_LIMIT = 5;
+    const AUTO_SU_SEQUENCE = [500, 300, 400];
+    const TEST_INTERVAL_MS = 28 * 24 * 60 * 60 * 1000;
+    const BELL_UP_SECONDS = 20 * 60;
     const LS = {
       HISTORY: "hellfireHistory",
+      TESTS: "hellfireTestHistory",
       LAST_NAMES: "hellfireLastWorkout",
-      ACTIVE: "hellfireActiveWorkout"
+      ACTIVE: "hellfireActiveWorkout",
+      SETTINGS: "hellfireSettings"
     };
 
     const patternColors = {
@@ -813,12 +814,16 @@
     };
 
     const state = {
-      mode: "normal",
+      mode: "progression",
       level: "beginner",
-      targetSU: 300,
+      suMode: "auto",
+      targetSU: 500,
+      autoIndex: 0,
+      sessionType: "workout",
       preCheck: false,
       workout: [],
       history: [],
+      testHistory: [],
       lastWorkoutNames: [],
       timerRunning: false,
       seconds: 0,
@@ -841,6 +846,17 @@
 
     function write(key, value) {
       localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function saveSettings() {
+      write(LS.SETTINGS, {
+        mode: state.mode,
+        level: state.level,
+        suMode: state.suMode,
+        targetSU: state.targetSU,
+        autoIndex: state.autoIndex,
+        preCheck: state.preCheck
+      });
     }
 
     function formatTime(seconds) {
@@ -894,15 +910,69 @@
       return workout.reduce((sum, exercise) => sum + (exercise.su || 0), 0);
     }
 
-    function generateWorkout(note = null, target = state.targetSU) {
+    function normalizeMode(mode, suMode = state.suMode) {
+      if (mode === "progression" || mode === "test") return "progression";
+      if (mode === "normal" && suMode === "auto") return "progression";
+      return "normal";
+    }
+
+    function elapsedSeconds() {
+      if (!state.timerRunning || !state.startedAt) return state.seconds;
+      return Math.max(state.seconds, Math.floor((Date.now() - state.startedAt) / 1000));
+    }
+
+    function entryTimestamp(entry) {
+      if (typeof entry.timestamp === "number") return entry.timestamp;
+      const parsed = Date.parse(entry.date);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+
+    function previousTestEntries() {
+      return state.testHistory
+        .filter((entry) => entry.type === "test")
+        .sort((a, b) => entryTimestamp(b) - entryTimestamp(a));
+    }
+
+    function latestTestEntry() {
+      return previousTestEntries()[0] || null;
+    }
+
+    function isAutoTestDue() {
+      if (state.mode !== "progression") return false;
+      const latestTest = latestTestEntry();
+      if (!latestTest) return true;
+      return Date.now() - entryTimestamp(latestTest) >= TEST_INTERVAL_MS;
+    }
+
+    function nextAutoTarget() {
+      return AUTO_SU_SEQUENCE[state.autoIndex % AUTO_SU_SEQUENCE.length];
+    }
+
+    function resolveTargetSU(target) {
+      if (typeof target === "number") return target;
+      if (state.mode !== "progression") return state.targetSU;
+
+      const nextTarget = nextAutoTarget();
+      state.autoIndex = (state.autoIndex + 1) % AUTO_SU_SEQUENCE.length;
+      state.targetSU = nextTarget;
+      saveSettings();
+      return nextTarget;
+    }
+
+    function generateWorkout(note = null, target = null) {
       stopTimer(false);
       state.seconds = 0;
       state.note = note;
       state.completed = false;
+      const shouldRunTest = state.mode === "progression" && isAutoTestDue();
+      const resolvedTarget = state.mode === "progression"
+        ? shouldRunTest ? state.targetSU : resolveTargetSU(target)
+        : typeof target === "number" ? target : state.targetSU;
+      state.sessionType = shouldRunTest ? "test" : "workout";
 
-      if (state.mode === "test") {
+      if (shouldRunTest) {
         state.workout = testWorkout.map((exercise) => ({ ...exercise, su: null }));
-        state.targetSU = target;
+        state.targetSU = resolvedTarget;
       } else {
         const db = exerciseDatabase[state.level];
         const patterns = Object.keys(db);
@@ -917,12 +987,12 @@
           patternCount[pattern] = 1;
         });
 
-        for (let attempts = 0; currentSU < target - 30 && attempts < 140; attempts += 1) {
+        for (let attempts = 0; currentSU < resolvedTarget - 30 && attempts < 140; attempts += 1) {
           const pattern = pickRandom(patterns);
           if ((patternCount[pattern] || 0) >= 2) continue;
 
           const su = Math.floor(Math.random() * 41) + 30;
-          if (currentSU + su > target + 10) continue;
+          if (currentSU + su > resolvedTarget + 10) continue;
 
           exercises.push(createWorkoutExercise(pickRandom(getOptions(db[pattern])), pattern, su));
           currentSU += su;
@@ -933,21 +1003,25 @@
       }
 
       state.lastWorkoutNames = state.workout.map((exercise) => exercise.name);
+      state.targetSU = resolvedTarget;
       write(LS.LAST_NAMES, state.lastWorkoutNames);
       persistActive();
       render();
-      toast("Workout loaded. Complete it to save it to history.");
+      toast(shouldRunTest ? "Benchmark test loaded. Beat 20:00 for Bell Up." : "Workout loaded. Complete it to save it to history.");
     }
 
-    function buildHistoryEntry(type = state.mode === "test" ? "test" : "workout") {
+    function buildHistoryEntry(type = state.sessionType) {
+      const finalSeconds = elapsedSeconds();
       return {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        timestamp: Date.now(),
         date: new Date().toLocaleString(),
         type,
         level: state.level,
         targetSU: state.targetSU,
         actualSU: actualSU(),
-        time: state.seconds ? formatTime(state.seconds) : null,
+        time: finalSeconds ? formatTime(finalSeconds) : null,
+        timeSeconds: finalSeconds,
         note: state.note,
         exercises: state.workout.map((exercise) => ({
           name: exercise.name,
@@ -963,16 +1037,34 @@
     function saveHistoryEntry(entry) {
       state.history = [entry, ...state.history].slice(0, HISTORY_LIMIT);
       write(LS.HISTORY, state.history);
+      if (entry.type === "test") {
+        state.testHistory = [entry, ...state.testHistory].slice(0, 12);
+        write(LS.TESTS, state.testHistory);
+      }
     }
 
     function completeSession() {
       if (!state.workout.length) return;
+      state.seconds = elapsedSeconds();
       stopTimer(false);
-      const isBellUp = state.mode === "test" && state.seconds > 0 && state.seconds <= 1200;
-      if (isBellUp) state.note = "Bell Up. Test completed in under 20 minutes.";
-      saveHistoryEntry(buildHistoryEntry());
+      const isTest = state.sessionType === "test";
+      const previousTest = latestTestEntry();
+      const previousSeconds = typeof previousTest?.timeSeconds === "number" ? previousTest.timeSeconds : null;
+      const notes = state.note ? [state.note] : [];
+      const isBellUp = isTest && state.seconds > 0 && state.seconds <= BELL_UP_SECONDS;
+      const isSlower = isTest && previousSeconds && state.seconds > previousSeconds;
+
+      if (isTest && state.seconds > 0) {
+        notes.push(isBellUp ? "Bell Up. Test completed within 20 minutes. Move to a heavier bell." : "Same bell. Test finished outside 20 minutes.");
+        if (isSlower) {
+          notes.push(`Check-in. This test was ${formatTime(state.seconds - previousSeconds)} slower than the previous test.`);
+        }
+      }
+
+      state.note = notes.join(" ");
+      saveHistoryEntry(buildHistoryEntry(isTest ? "test" : "workout"));
       clearActiveSession();
-      toast(isBellUp ? "Bell Up. Saved and cleared." : "Session saved and cleared.");
+      toast(isTest ? isSlower ? "Check-in: slower than previous test. Benchmark saved." : isBellUp ? "Bell Up. Go heavier next time." : "Same bell. Benchmark saved." : "Session saved and cleared.");
     }
 
     function clearActiveSession() {
@@ -981,6 +1073,7 @@
       state.seconds = 0;
       state.startedAt = null;
       state.note = null;
+      state.sessionType = "workout";
       state.completed = false;
       localStorage.removeItem(LS.ACTIVE);
       render();
@@ -1002,9 +1095,12 @@
       write(LS.ACTIVE, {
         mode: state.mode,
         level: state.level,
+        suMode: state.suMode,
         targetSU: state.targetSU,
+        autoIndex: state.autoIndex,
+        sessionType: state.sessionType,
         workout: state.workout,
-        seconds: state.seconds,
+        seconds: elapsedSeconds(),
         timerRunning: state.timerRunning,
         startedAt: state.startedAt,
         note: state.note
@@ -1014,14 +1110,14 @@
     function startTimer() {
       if (!state.workout.length) return;
       state.timerRunning = true;
-      state.startedAt = Date.now() - state.seconds * 1000;
+      state.startedAt = Date.now() - elapsedSeconds() * 1000;
       persistActive();
       render();
     }
 
     function stopTimer(showMessage = true) {
       if (!state.timerRunning) return;
-      state.seconds = Math.max(state.seconds, Math.floor((Date.now() - state.startedAt) / 1000));
+      state.seconds = elapsedSeconds();
       state.timerRunning = false;
       state.startedAt = null;
       persistActive();
@@ -1031,7 +1127,7 @@
 
     function tick() {
       if (!state.timerRunning || !state.startedAt) return;
-      state.seconds = Math.floor((Date.now() - state.startedAt) / 1000);
+      state.seconds = elapsedSeconds();
       $("#timerDisplay").textContent = formatTime(state.seconds);
       persistActive();
     }
@@ -1048,7 +1144,7 @@
       $$("#modeControl button").forEach((button) => button.classList.toggle("active", button.dataset.mode === state.mode));
       $$("#levelControl button").forEach((button) => button.classList.toggle("active", button.dataset.level === state.level));
       $$("#suControl button").forEach((button) => button.classList.toggle("active", Number(button.dataset.su) === state.targetSU));
-      $("#normalControls").style.display = state.mode === "normal" ? "block" : "none";
+      $("#normalControls").style.display = "block";
       $("#suControls").style.display = state.mode === "normal" ? "block" : "none";
 
       const switchEl = $("#preCheckToggle .switch");
@@ -1058,8 +1154,11 @@
     }
 
     function renderStats() {
-      $("#targetStat").textContent = state.mode === "test" ? "TEST" : state.targetSU;
-      $("#actualStat").textContent = state.mode === "test" ? "-" : actualSU();
+      const target = state.mode === "progression" && !state.workout.length
+        ? isAutoTestDue() ? "TEST" : nextAutoTarget()
+        : state.targetSU;
+      $("#targetStat").textContent = state.sessionType === "test" ? "TEST" : target;
+      $("#actualStat").textContent = state.sessionType === "test" || target === "TEST" ? "-" : actualSU();
       $("#movesStat").textContent = state.workout.length;
     }
 
@@ -1089,11 +1188,12 @@
     }
 
     function renderSession() {
-      $("#timerDisplay").textContent = formatTime(state.seconds);
+      const displaySeconds = elapsedSeconds();
+      $("#timerDisplay").textContent = formatTime(displaySeconds);
       $("#sessionState").textContent = state.workout.length
-        ? state.timerRunning ? "Running" : "Session loaded"
+        ? state.timerRunning ? "Running" : state.sessionType === "test" ? "Benchmark test loaded" : "Session loaded"
         : "No active session";
-      $("#timerBtn").textContent = state.timerRunning ? "Stop Timer" : state.seconds ? "Resume Timer" : "Start Timer";
+      $("#timerBtn").textContent = state.timerRunning ? "Stop Timer" : displaySeconds ? "Resume Timer" : "Start Timer";
       $("#timerBtn").disabled = !state.workout.length;
       $("#completeBtn").disabled = !state.workout.length;
       $("#discardBtn").disabled = !state.workout.length;
@@ -1156,12 +1256,14 @@
       if (score === 0) {
         saveHistoryEntry({
           id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          timestamp: Date.now(),
           date: new Date().toLocaleString(),
           type: "recovery",
           level: state.level,
           targetSU: 0,
           actualSU: 0,
           time: null,
+          timeSeconds: 0,
           note: "Recovery Day. Mobility or stretching instead of Hellfire.",
           exercises: []
         });
@@ -1170,18 +1272,33 @@
         return;
       }
 
-      state.targetSU = score === 1 ? 300 : score === 2 ? 400 : 500;
-      generateWorkout(`Pre-check score: ${score}`, state.targetSU);
+      generateWorkout(`Pre-check score: ${score}`);
     }
 
     function hydrate() {
       state.history = safeRead(LS.HISTORY, []);
+      state.testHistory = safeRead(LS.TESTS, []);
+      if (!state.testHistory.length) {
+        state.testHistory = state.history.filter((entry) => entry.type === "test");
+      }
       state.lastWorkoutNames = safeRead(LS.LAST_NAMES, []);
+      const settings = safeRead(LS.SETTINGS, null);
+      if (settings) {
+        state.mode = normalizeMode(settings.mode || state.mode, settings.suMode);
+        state.level = settings.level || state.level;
+        state.suMode = state.mode === "progression" ? "auto" : "fixed";
+        state.targetSU = settings.targetSU || state.targetSU;
+        state.autoIndex = Number.isInteger(settings.autoIndex) ? settings.autoIndex : state.autoIndex;
+        state.preCheck = Boolean(settings.preCheck);
+      }
       const active = safeRead(LS.ACTIVE, null);
       if (active?.workout?.length) {
-        state.mode = active.mode || "normal";
+        state.mode = normalizeMode(active.mode || state.mode, active.suMode);
         state.level = active.level || "beginner";
+        state.suMode = state.mode === "progression" ? "auto" : "fixed";
         state.targetSU = active.targetSU || 300;
+        state.autoIndex = Number.isInteger(active.autoIndex) ? active.autoIndex : state.autoIndex;
+        state.sessionType = active.sessionType || "workout";
         state.workout = active.workout;
         state.seconds = active.seconds || 0;
         state.timerRunning = Boolean(active.timerRunning);
@@ -1193,10 +1310,17 @@
       }
     }
 
+    function syncTimerFromClock() {
+      if (!state.timerRunning) return;
+      state.seconds = elapsedSeconds();
+      renderSession();
+      persistActive();
+    }
+
     function bindEvents() {
       $("#generateBtn").addEventListener("click", () => {
         if (state.workout.length && !confirm("Overwrite the current unsaved session?")) return;
-        if (state.preCheck && state.mode === "normal") openPreCheck();
+        if (state.preCheck) openPreCheck();
         else generateWorkout();
       });
 
@@ -1206,6 +1330,8 @@
         if (state.workout.length && !confirm("Changing mode clears the current unsaved session.")) return;
         clearActiveSession();
         state.mode = button.dataset.mode;
+        state.suMode = state.mode === "progression" ? "auto" : "fixed";
+        saveSettings();
         render();
       });
 
@@ -1213,19 +1339,24 @@
         const button = event.target.closest("button[data-level]");
         if (!button) return;
         state.level = button.dataset.level;
+        saveSettings();
         renderControls();
       });
 
       $("#suControl").addEventListener("click", (event) => {
         const button = event.target.closest("button[data-su]");
         if (!button) return;
+        state.mode = "normal";
+        state.suMode = "fixed";
         state.targetSU = Number(button.dataset.su);
+        saveSettings();
         renderControls();
         renderStats();
       });
 
       $("#preCheckToggle").addEventListener("click", () => {
         state.preCheck = !state.preCheck;
+        saveSettings();
         renderControls();
       });
 
@@ -1294,6 +1425,15 @@
     bindEvents();
     render();
     setupPWA();
+    document.addEventListener("visibilitychange", syncTimerFromClock);
+    window.addEventListener("focus", syncTimerFromClock);
+    window.addEventListener("pageshow", syncTimerFromClock);
+    window.addEventListener("pagehide", () => {
+      if (state.timerRunning) {
+        state.seconds = elapsedSeconds();
+        persistActive();
+      }
+    });
     setInterval(tick, 1000);
   </script>
 </body>
