@@ -1,4 +1,4 @@
-const CACHE_NAME = "hellfire-pwa-v5";
+const CACHE_NAME = "hellfire-pwa-v7";
 const ASSETS = [
   "./",
   "./index.html",

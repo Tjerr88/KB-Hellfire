@@ -180,6 +180,10 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    .segmented.six {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .segmented.four {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
@@ -296,6 +300,27 @@
       font-weight: 900;
     }
 
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .dash-item {
+      padding: 12px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .dash-value {
+      margin-top: 5px;
+      color: #fff8ef;
+      font-weight: 950;
+      line-height: 1.25;
+    }
+
     .workout-area {
       margin-top: 18px;
       display: grid;
@@ -356,6 +381,24 @@
       font-weight: 950;
       text-align: right;
       white-space: nowrap;
+    }
+
+    .cue {
+      margin-top: 12px;
+      color: #d9c8b7;
+      font-size: 0.92rem;
+      line-height: 1.4;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 10px;
+    }
+
+    .intent {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 90, 31, 0.08);
+      color: #ffe4c8;
+      font-weight: 850;
     }
 
     .empty {
@@ -450,6 +493,28 @@
 
     .modal-card h2 {
       margin: 0 0 10px;
+    }
+
+    .modal-card textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      margin: 12px 0;
+      padding: 12px;
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.38);
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+    }
+
+    .result-score {
+      margin: 14px 0;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: rgba(255, 90, 31, 0.12);
+      border: 1px solid var(--line);
+      font-size: 1.2rem;
+      font-weight: 950;
     }
 
     .checks {
@@ -559,7 +624,9 @@
 
       .stats,
       .segmented.three,
-      .segmented.four {
+      .segmented.four,
+      .segmented.six,
+      .dashboard {
         grid-template-columns: 1fr;
       }
 
@@ -602,7 +669,7 @@
 
           <div class="hero-actions">
             <button class="primary" id="generateBtn">Generate Workout</button>
-            <button class="ghost install" id="installBtn">Install App</button>
+            <button class="ghost" id="installBtn">Install App</button>
             <span class="offline" id="offlineBadge">Offline ready</span>
           </div>
         </header>
@@ -639,13 +706,18 @@
             </div>
           </div>
 
-          <div class="toggle-row">
-            <span class="field-label">Readiness gate</span>
-            <button class="toggle" id="preCheckToggle" aria-pressed="false">
-              <span class="switch"><span></span></span>
-              <span id="preCheckLabel">Pre-check off</span>
-            </button>
+          <div>
+            <div class="field-label">Bell weight</div>
+            <div class="segmented six" id="bellControl">
+              <button data-bell="12">12 kg</button>
+              <button data-bell="16" class="active">16 kg</button>
+              <button data-bell="20">20 kg</button>
+              <button data-bell="24">24 kg</button>
+              <button data-bell="28">28 kg</button>
+              <button data-bell="32">32 kg</button>
+            </div>
           </div>
+
         </div>
 
         <div class="stats">
@@ -662,6 +734,8 @@
             <div class="stat-value" id="movesStat">0</div>
           </div>
         </div>
+
+        <div class="dashboard" id="progressDashboard"></div>
 
         <div class="panel" style="margin-top: 14px; box-shadow: none;">
           <div class="session-toolbar">
@@ -690,6 +764,10 @@
             </div>
           </div>
           <div id="historyList"></div>
+          <div class="button-row" style="margin-top: 10px;">
+            <button class="quiet" id="exportBtn">Export data</button>
+            <button class="quiet" id="importBtn">Import data</button>
+          </div>
         </section>
       </aside>
     </section>
@@ -698,7 +776,7 @@
   <div class="modal" id="preCheckModal" role="dialog" aria-modal="true" aria-labelledby="preCheckTitle">
     <div class="modal-card">
       <h2 id="preCheckTitle">Pre-workout check</h2>
-      <p class="small">Select what is true today. Low readiness becomes recovery instead of forcing junk volume.</p>
+      <p class="small">Progression checks readiness before loading work. Low readiness lowers today's session and keeps the planned step open for next time.</p>
       <div class="checks">
         <label class="check"><input type="checkbox" data-check="sleep" /> Slept enough</label>
         <label class="check"><input type="checkbox" data-check="energy" /> Energy is solid</label>
@@ -711,11 +789,57 @@
     </div>
   </div>
 
+  <div class="modal" id="rpeModal" role="dialog" aria-modal="true" aria-labelledby="rpeTitle">
+    <div class="modal-card">
+      <h2 id="rpeTitle">Session check</h2>
+      <p class="small">How did it land?</p>
+      <div class="button-row">
+        <button class="primary" data-rpe="Easy">Easy</button>
+        <button class="ghost" data-rpe="Hard but clean">Hard but clean</button>
+        <button class="danger" data-rpe="Redline">Redline</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="modal-card">
+      <h2 id="resultTitle">Benchmark result</h2>
+      <div class="result-score" id="resultScore"></div>
+      <p class="small" id="resultDetail"></p>
+      <div class="button-row">
+        <button class="primary" id="closeResultBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="dataModal" role="dialog" aria-modal="true" aria-labelledby="dataTitle">
+    <div class="modal-card">
+      <h2 id="dataTitle">Import data</h2>
+      <p class="small">Paste a Hellfire export. Import replaces local app data.</p>
+      <textarea id="importDataInput" spellcheck="false"></textarea>
+      <div class="button-row">
+        <button class="primary" id="confirmImportBtn">Import</button>
+        <button class="ghost" id="cancelImportBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="installModal" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+    <div class="modal-card">
+      <h2 id="installTitle">Install Hellfire</h2>
+      <p class="small">On iPhone: open this page in Safari, tap Share, then Add to Home Screen. On Android or desktop, use the browser install prompt when it appears.</p>
+      <div class="button-row">
+        <button class="primary" id="closeInstallBtn">Got it</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
     const HISTORY_LIMIT = 5;
     const AUTO_SU_SEQUENCE = [500, 300, 400];
+    const BELL_OPTIONS = [12, 16, 20, 24, 28, 32];
     const TEST_INTERVAL_MS = 28 * 24 * 60 * 60 * 1000;
     const BELL_UP_SECONDS = 20 * 60;
     const LS = {
@@ -733,6 +857,15 @@
       pull: "#6fe08e",
       core: "#ffd15f",
       hybrid: "#ff9a35"
+    };
+
+    const cueByPattern = {
+      squat: "Stay tall, knees track clean, own the bottom before you drive.",
+      hinge: "Snap the hips, keep ribs down, let the bell float instead of lifting it.",
+      push: "Brace first, punch through clean, keep the shoulder packed.",
+      pull: "Lead with the elbow, keep the neck quiet, finish crisp.",
+      core: "Move slow enough to control the ribs and pelvis.",
+      hybrid: "Do not rush the transitions. Clean reps beat dirty speed."
     };
 
     const testWorkout = [
@@ -819,8 +952,8 @@
       suMode: "auto",
       targetSU: 500,
       autoIndex: 0,
+      bellKg: 16,
       sessionType: "workout",
-      preCheck: false,
       workout: [],
       history: [],
       testHistory: [],
@@ -828,6 +961,7 @@
       timerRunning: false,
       seconds: 0,
       startedAt: null,
+      wakeLock: null,
       note: null,
       completed: false
     };
@@ -855,7 +989,7 @@
         suMode: state.suMode,
         targetSU: state.targetSU,
         autoIndex: state.autoIndex,
-        preCheck: state.preCheck
+        bellKg: state.bellKg
       });
     }
 
@@ -916,6 +1050,58 @@
       return "normal";
     }
 
+    function nextBell(current = state.bellKg) {
+      const index = BELL_OPTIONS.indexOf(Number(current));
+      return BELL_OPTIONS[Math.min(index + 1, BELL_OPTIONS.length - 1)] || current;
+    }
+
+    function daysUntilNextTest() {
+      const latestTest = latestTestEntry();
+      if (!latestTest) return 0;
+      const dueAt = entryTimestamp(latestTest) + TEST_INTERVAL_MS;
+      return Math.max(0, Math.ceil((dueAt - Date.now()) / (24 * 60 * 60 * 1000)));
+    }
+
+    function bestTestEntry() {
+      return previousTestEntries()
+        .filter((entry) => typeof entry.timeSeconds === "number" && entry.timeSeconds > 0)
+        .sort((a, b) => a.timeSeconds - b.timeSeconds)[0] || null;
+    }
+
+    function currentIntent() {
+      if (state.sessionType === "test") return "Benchmark test. Smooth reps, honest clock, no pacing fantasy.";
+      if (state.mode === "progression") {
+        if (state.targetSU >= 500) return "Heavy engine. Big output, clean breathing, controlled aggression.";
+        if (state.targetSU >= 400) return "Density day. Keep transitions sharp and avoid junk reps.";
+        return "Recovery burner. Move well, sweat, leave something in the tank.";
+      }
+      return "Fixed target. Hit the work clean and compare by feel.";
+    }
+
+    function cueFor(exercise) {
+      return cueByPattern[exercise.pattern] || "Quality first. Speed only counts when the rep stays clean.";
+    }
+
+    function signal(kind = "soft") {
+      try {
+        if ("vibrate" in navigator) navigator.vibrate(kind === "success" ? [80, 40, 80] : 45);
+      } catch {}
+
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = kind === "success" ? 660 : 440;
+        gain.gain.value = 0.035;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      } catch {}
+    }
+
     function elapsedSeconds() {
       if (!state.timerRunning || !state.startedAt) return state.seconds;
       return Math.max(state.seconds, Math.floor((Date.now() - state.startedAt) / 1000));
@@ -959,14 +1145,44 @@
       return nextTarget;
     }
 
-    function generateWorkout(note = null, target = null) {
+    function lowerTarget(target, steps) {
+      const ladder = [300, 400, 500];
+      const index = ladder.indexOf(Number(target));
+      if (index < 0) return 300;
+      return ladder[Math.max(0, index - steps)];
+    }
+
+    function readinessPlan(score) {
+      const testDue = isAutoTestDue();
+      const plannedTarget = testDue ? 500 : nextAutoTarget();
+
+      if (score >= 3) {
+        return {
+          adjustedTarget: plannedTarget,
+          consumeProgression: true,
+          forceWorkout: false,
+          note: "Readiness score: 3. Full progression session."
+        };
+      }
+
+      const stepsDown = score === 2 ? 1 : 2;
+      const adjustedTarget = testDue ? (score === 2 ? 400 : 300) : lowerTarget(plannedTarget, stepsDown);
+      return {
+        adjustedTarget,
+        consumeProgression: false,
+        forceWorkout: true,
+        note: `${testDue ? "Benchmark held" : "Progression step held"}. Readiness score: ${score}. Planned ${testDue ? "benchmark" : `${plannedTarget} SU`}, loaded ${adjustedTarget} SU.`
+      };
+    }
+
+    function generateWorkout(note = null, target = null, options = {}) {
       stopTimer(false);
       state.seconds = 0;
       state.note = note;
       state.completed = false;
-      const shouldRunTest = state.mode === "progression" && isAutoTestDue();
+      const shouldRunTest = !options.forceWorkout && state.mode === "progression" && isAutoTestDue();
       const resolvedTarget = state.mode === "progression"
-        ? shouldRunTest ? state.targetSU : resolveTargetSU(target)
+        ? shouldRunTest ? state.targetSU : options.consumeProgression === false && typeof target === "number" ? target : resolveTargetSU(target)
         : typeof target === "number" ? target : state.targetSU;
       state.sessionType = shouldRunTest ? "test" : "workout";
 
@@ -1007,10 +1223,10 @@
       write(LS.LAST_NAMES, state.lastWorkoutNames);
       persistActive();
       render();
-      toast(shouldRunTest ? "Benchmark test loaded. Beat 20:00 for Bell Up." : "Workout loaded. Complete it to save it to history.");
+      toast(shouldRunTest ? "Benchmark test loaded. Beat 20:00 for Bell Up." : note?.includes("held") ? note : "Workout loaded. Complete it to save it to history.");
     }
 
-    function buildHistoryEntry(type = state.sessionType) {
+    function buildHistoryEntry(type = state.sessionType, rpe = null) {
       const finalSeconds = elapsedSeconds();
       return {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
@@ -1018,10 +1234,12 @@
         date: new Date().toLocaleString(),
         type,
         level: state.level,
+        bellKg: state.bellKg,
         targetSU: state.targetSU,
         actualSU: actualSU(),
-        time: finalSeconds ? formatTime(finalSeconds) : null,
+        time: formatTime(finalSeconds),
         timeSeconds: finalSeconds,
+        rpe,
         note: state.note,
         exercises: state.workout.map((exercise) => ({
           name: exercise.name,
@@ -1043,7 +1261,7 @@
       }
     }
 
-    function completeSession() {
+    function completeSession(rpe = null) {
       if (!state.workout.length) return;
       state.seconds = elapsedSeconds();
       stopTimer(false);
@@ -1053,17 +1271,30 @@
       const notes = state.note ? [state.note] : [];
       const isBellUp = isTest && state.seconds > 0 && state.seconds <= BELL_UP_SECONDS;
       const isSlower = isTest && previousSeconds && state.seconds > previousSeconds;
+      const bellBefore = state.bellKg;
+      const bellAfter = isBellUp ? nextBell(bellBefore) : bellBefore;
 
       if (isTest && state.seconds > 0) {
-        notes.push(isBellUp ? "Bell Up. Test completed within 20 minutes. Move to a heavier bell." : "Same bell. Test finished outside 20 minutes.");
+        notes.push(isBellUp ? `Bell Up. Test completed within 20 minutes. Next bell: ${bellAfter} kg.` : `Same bell. Test finished outside 20 minutes. Stay at ${bellBefore} kg.`);
         if (isSlower) {
           notes.push(`Check-in. This test was ${formatTime(state.seconds - previousSeconds)} slower than the previous test.`);
         }
       }
+      if (rpe) notes.push(`RPE: ${rpe}.`);
 
       state.note = notes.join(" ");
-      saveHistoryEntry(buildHistoryEntry(isTest ? "test" : "workout"));
+      const entry = buildHistoryEntry(isTest ? "test" : "workout", rpe);
+      entry.bellBefore = bellBefore;
+      entry.bellAfter = bellAfter;
+      saveHistoryEntry(entry);
+      if (isBellUp && bellAfter !== bellBefore) {
+        state.bellKg = bellAfter;
+        saveSettings();
+      }
       clearActiveSession();
+      releaseWakeLock();
+      if (isTest) showResult(entry, { isBellUp, isSlower, previousSeconds });
+      signal(isTest || isBellUp ? "success" : "soft");
       toast(isTest ? isSlower ? "Check-in: slower than previous test. Benchmark saved." : isBellUp ? "Bell Up. Go heavier next time." : "Same bell. Benchmark saved." : "Session saved and cleared.");
     }
 
@@ -1082,6 +1313,7 @@
     function discardSession() {
       if (!state.workout.length) return;
       if (!confirm("Discard the current session? It will not be saved to history.")) return;
+      releaseWakeLock();
       clearActiveSession();
       toast("Session discarded.");
     }
@@ -1098,6 +1330,7 @@
         suMode: state.suMode,
         targetSU: state.targetSU,
         autoIndex: state.autoIndex,
+        bellKg: state.bellKg,
         sessionType: state.sessionType,
         workout: state.workout,
         seconds: elapsedSeconds(),
@@ -1111,8 +1344,10 @@
       if (!state.workout.length) return;
       state.timerRunning = true;
       state.startedAt = Date.now() - elapsedSeconds() * 1000;
+      requestWakeLock();
       persistActive();
       render();
+      signal("soft");
     }
 
     function stopTimer(showMessage = true) {
@@ -1120,9 +1355,48 @@
       state.seconds = elapsedSeconds();
       state.timerRunning = false;
       state.startedAt = null;
+      releaseWakeLock();
       persistActive();
       if (showMessage) toast(`Workout time: ${formatTime(state.seconds)}`);
       render();
+      signal("soft");
+    }
+
+    async function requestWakeLock() {
+      try {
+        if (!("wakeLock" in navigator) || state.wakeLock) return;
+        state.wakeLock = await navigator.wakeLock.request("screen");
+        state.wakeLock.addEventListener("release", () => {
+          state.wakeLock = null;
+        });
+      } catch {
+        state.wakeLock = null;
+      }
+    }
+
+    async function releaseWakeLock() {
+      try {
+        if (state.wakeLock) await state.wakeLock.release();
+      } catch {}
+      state.wakeLock = null;
+    }
+
+    function requestCompleteSession() {
+      if (!state.workout.length) return;
+      $("#rpeModal").classList.add("show");
+    }
+
+    function closeRpe() {
+      $("#rpeModal").classList.remove("show");
+    }
+
+    function showResult(entry, flags) {
+      const previousText = flags.previousSeconds ? ` Previous test: ${formatTime(flags.previousSeconds)}.` : "";
+      $("#resultScore").textContent = flags.isBellUp
+        ? `Bell Up: ${entry.time || "0:00"} at ${entry.bellBefore} kg`
+        : `Hold Bell: ${entry.time || "0:00"} at ${entry.bellBefore} kg`;
+      $("#resultDetail").textContent = `${flags.isBellUp ? `Next benchmark bell: ${entry.bellAfter} kg.` : `Stay at ${entry.bellBefore} kg.`}${previousText}${flags.isSlower ? " Slower than last time: check recovery, sleep, load, or pacing." : ""}`;
+      $("#resultModal").classList.add("show");
     }
 
     function tick() {
@@ -1144,13 +1418,10 @@
       $$("#modeControl button").forEach((button) => button.classList.toggle("active", button.dataset.mode === state.mode));
       $$("#levelControl button").forEach((button) => button.classList.toggle("active", button.dataset.level === state.level));
       $$("#suControl button").forEach((button) => button.classList.toggle("active", Number(button.dataset.su) === state.targetSU));
+      $$("#bellControl button").forEach((button) => button.classList.toggle("active", Number(button.dataset.bell) === state.bellKg));
       $("#normalControls").style.display = "block";
       $("#suControls").style.display = state.mode === "normal" ? "block" : "none";
 
-      const switchEl = $("#preCheckToggle .switch");
-      switchEl.classList.toggle("on", state.preCheck);
-      $("#preCheckToggle").setAttribute("aria-pressed", String(state.preCheck));
-      $("#preCheckLabel").textContent = state.preCheck ? "Pre-check on" : "Pre-check off";
     }
 
     function renderStats() {
@@ -1160,6 +1431,31 @@
       $("#targetStat").textContent = state.sessionType === "test" ? "TEST" : target;
       $("#actualStat").textContent = state.sessionType === "test" || target === "TEST" ? "-" : actualSU();
       $("#movesStat").textContent = state.workout.length;
+      renderDashboard();
+    }
+
+    function renderDashboard() {
+      const latestTest = latestTestEntry();
+      const bestTest = bestTestEntry();
+      const nextDays = daysUntilNextTest();
+      $("#progressDashboard").innerHTML = `
+        <div class="dash-item">
+          <div class="stat-label">Bell</div>
+          <div class="dash-value">${state.bellKg} kg</div>
+        </div>
+        <div class="dash-item">
+          <div class="stat-label">Next benchmark</div>
+          <div class="dash-value">${state.mode === "progression" ? nextDays === 0 ? "Due now" : `${nextDays} days` : "Progression off"}</div>
+        </div>
+        <div class="dash-item">
+          <div class="stat-label">Last test</div>
+          <div class="dash-value">${latestTest?.time || "None"}</div>
+        </div>
+        <div class="dash-item">
+          <div class="stat-label">Best test</div>
+          <div class="dash-value">${bestTest?.time || "None"}</div>
+        </div>
+      `;
     }
 
     function renderWorkout() {
@@ -1169,7 +1465,7 @@
         return;
       }
 
-      area.innerHTML = state.workout.map((exercise, index) => `
+      area.innerHTML = `<div class="intent">${escapeHtml(currentIntent())}</div>` + state.workout.map((exercise, index) => `
         <article class="exercise">
           <div class="exercise-main">
             <div class="index">${index + 1}</div>
@@ -1183,6 +1479,7 @@
             </div>
             <div class="reps">${repsLabel(exercise.reps, exercise.unilateral)}</div>
           </div>
+          <div class="cue">${escapeHtml(cueFor(exercise))}</div>
         </article>
       `).join("");
     }
@@ -1223,6 +1520,17 @@
           </div>
         </article>
       `).join("");
+
+      list.querySelectorAll(".history-item").forEach((item, index) => {
+        const meta = item.querySelector(".small");
+        if (meta) meta.textContent = historyMeta(state.history[index]);
+      });
+    }
+
+    function historyMeta(entry) {
+      const load = entry.type === "test" ? "Benchmark" : `${entry.actualSU || entry.targetSU || 0} SU`;
+      const rpe = entry.rpe ? ` · ${entry.rpe}` : "";
+      return `${entry.date}${entry.time ? ` · ${entry.time}` : ""} · ${entry.bellKg || state.bellKg} kg · ${load}${rpe}`;
     }
 
     function escapeHtml(value) {
@@ -1243,6 +1551,9 @@
     }
 
     function openPreCheck() {
+      $$("[data-check]").forEach((input) => {
+        input.checked = false;
+      });
       $("#preCheckModal").classList.add("show");
     }
 
@@ -1264,15 +1575,30 @@
           actualSU: 0,
           time: null,
           timeSeconds: 0,
-          note: "Recovery Day. Mobility or stretching instead of Hellfire.",
+          note: "Recovery Day. Progression step held for next time.",
           exercises: []
         });
         renderHistory();
-        toast("Recovery day saved.");
+        renderStats();
+        toast("Recovery day saved. Progression step held.");
         return;
       }
 
-      generateWorkout(`Pre-check score: ${score}`);
+      if (state.mode === "progression") {
+        const plan = readinessPlan(score);
+        if (plan.consumeProgression) {
+          generateWorkout(plan.note);
+          return;
+        }
+
+        generateWorkout(plan.note, plan.adjustedTarget, {
+          consumeProgression: plan.consumeProgression,
+          forceWorkout: plan.forceWorkout
+        });
+        return;
+      }
+
+      generateWorkout(`Readiness score: ${score}.`);
     }
 
     function hydrate() {
@@ -1289,7 +1615,7 @@
         state.suMode = state.mode === "progression" ? "auto" : "fixed";
         state.targetSU = settings.targetSU || state.targetSU;
         state.autoIndex = Number.isInteger(settings.autoIndex) ? settings.autoIndex : state.autoIndex;
-        state.preCheck = Boolean(settings.preCheck);
+        state.bellKg = BELL_OPTIONS.includes(Number(settings.bellKg)) ? Number(settings.bellKg) : state.bellKg;
       }
       const active = safeRead(LS.ACTIVE, null);
       if (active?.workout?.length) {
@@ -1298,6 +1624,7 @@
         state.suMode = state.mode === "progression" ? "auto" : "fixed";
         state.targetSU = active.targetSU || 300;
         state.autoIndex = Number.isInteger(active.autoIndex) ? active.autoIndex : state.autoIndex;
+        state.bellKg = BELL_OPTIONS.includes(Number(active.bellKg)) ? Number(active.bellKg) : state.bellKg;
         state.sessionType = active.sessionType || "workout";
         state.workout = active.workout;
         state.seconds = active.seconds || 0;
@@ -1317,10 +1644,49 @@
       persistActive();
     }
 
+    function exportData() {
+      const data = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        settings: safeRead(LS.SETTINGS, {}),
+        history: state.history,
+        testHistory: state.testHistory,
+        lastWorkoutNames: state.lastWorkoutNames,
+        activeWorkout: safeRead(LS.ACTIVE, null)
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `hellfire-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast("Data exported.");
+    }
+
+    function importData() {
+      try {
+        const data = JSON.parse($("#importDataInput").value);
+        if (!data || !Array.isArray(data.history)) throw new Error("Invalid export");
+        write(LS.SETTINGS, data.settings || {});
+        write(LS.HISTORY, data.history || []);
+        write(LS.TESTS, data.testHistory || data.history.filter((entry) => entry.type === "test"));
+        write(LS.LAST_NAMES, data.lastWorkoutNames || []);
+        if (data.activeWorkout) write(LS.ACTIVE, data.activeWorkout);
+        else localStorage.removeItem(LS.ACTIVE);
+        $("#dataModal").classList.remove("show");
+        location.reload();
+      } catch {
+        toast("Import failed. Check the pasted export.");
+      }
+    }
+
     function bindEvents() {
       $("#generateBtn").addEventListener("click", () => {
         if (state.workout.length && !confirm("Overwrite the current unsaved session?")) return;
-        if (state.preCheck) openPreCheck();
+        if (state.mode === "progression") openPreCheck();
         else generateWorkout();
       });
 
@@ -1354,35 +1720,60 @@
         renderStats();
       });
 
-      $("#preCheckToggle").addEventListener("click", () => {
-        state.preCheck = !state.preCheck;
+      $("#bellControl").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-bell]");
+        if (!button) return;
+        state.bellKg = Number(button.dataset.bell);
         saveSettings();
         renderControls();
+        renderStats();
       });
 
       $("#timerBtn").addEventListener("click", () => {
         state.timerRunning ? stopTimer(true) : startTimer();
       });
 
-      $("#completeBtn").addEventListener("click", completeSession);
+      $("#completeBtn").addEventListener("click", requestCompleteSession);
       $("#discardBtn").addEventListener("click", discardSession);
       $("#submitPreCheckBtn").addEventListener("click", submitPreCheck);
       $("#cancelPreCheckBtn").addEventListener("click", closePreCheck);
+      $("#rpeModal").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-rpe]");
+        if (!button) return;
+        const rpe = button.dataset.rpe;
+        closeRpe();
+        completeSession(rpe);
+      });
+      $("#closeResultBtn").addEventListener("click", () => $("#resultModal").classList.remove("show"));
+      $("#closeInstallBtn").addEventListener("click", () => $("#installModal").classList.remove("show"));
+      $("#exportBtn").addEventListener("click", exportData);
+      $("#importBtn").addEventListener("click", () => $("#dataModal").classList.add("show"));
+      $("#cancelImportBtn").addEventListener("click", () => $("#dataModal").classList.remove("show"));
+      $("#confirmImportBtn").addEventListener("click", importData);
 
       $("#removeLastBtn").addEventListener("click", () => {
         if (!state.history.length) return;
         if (!confirm("Remove the latest completed entry?")) return;
+        const removed = state.history[0];
         state.history = state.history.slice(1);
         write(LS.HISTORY, state.history);
+        if (removed?.type === "test") {
+          state.testHistory = state.testHistory.filter((entry) => entry.id !== removed.id);
+          write(LS.TESTS, state.testHistory);
+        }
         renderHistory();
+        renderStats();
       });
 
       $("#clearHistoryBtn").addEventListener("click", () => {
         if (!state.history.length) return;
         if (!confirm("Clear all completed history? Current session is untouched.")) return;
         state.history = [];
+        state.testHistory = [];
         localStorage.removeItem(LS.HISTORY);
+        localStorage.removeItem(LS.TESTS);
         renderHistory();
+        renderStats();
       });
 
       $("#historyList").addEventListener("click", (event) => {
@@ -1409,15 +1800,16 @@
       window.addEventListener("beforeinstallprompt", (event) => {
         event.preventDefault();
         installPrompt = event;
-        $("#installBtn").classList.add("show");
       });
 
       $("#installBtn").addEventListener("click", async () => {
-        if (!installPrompt) return;
+        if (!installPrompt) {
+          $("#installModal").classList.add("show");
+          return;
+        }
         installPrompt.prompt();
         await installPrompt.userChoice;
         installPrompt = null;
-        $("#installBtn").classList.remove("show");
       });
     }
 
