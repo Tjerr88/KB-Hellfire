@@ -170,6 +170,43 @@
       margin-top: 28px;
     }
 
+    .mobile-tabs,
+    .mobile-setup-summary {
+      display: none;
+    }
+
+    .mobile-tabs {
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(16, 14, 13, 0.92);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .mobile-tabs button {
+      min-height: 42px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .mobile-tabs button.active {
+      color: #160905;
+      background: linear-gradient(135deg, var(--ember-2), var(--ember), var(--red));
+    }
+
+    .mobile-setup-summary {
+      position: relative;
+      z-index: 1;
+      margin-top: 18px;
+      color: #ffe4c8;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
     .panel {
       border-radius: var(--radius);
       padding: 18px;
@@ -659,8 +696,23 @@
         background-position: center top;
       }
 
+      .mobile-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        position: sticky;
+        top: 8px;
+        z-index: 20;
+        margin-bottom: 12px;
+      }
+
+      .mobile-setup-summary {
+        display: block;
+      }
+
       .shell {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
       }
 
       .hero {
@@ -669,6 +721,34 @@
 
       .session-panel {
         position: static;
+      }
+
+      body.mobile-tab-train [data-mobile-pane]:not([data-mobile-pane="train"]),
+      body.mobile-tab-settings [data-mobile-pane]:not([data-mobile-pane="settings"]),
+      body.mobile-tab-history [data-mobile-pane]:not([data-mobile-pane="history"]) {
+        display: none !important;
+      }
+
+      body.mobile-tab-train .session-panel {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        margin-top: 14px;
+        order: 2;
+      }
+
+      body.mobile-tab-train .shell > [data-mobile-pane="train"] {
+        display: contents;
+      }
+
+      body.mobile-tab-train .hero {
+        order: 1;
+      }
+
+      body.mobile-tab-train .workout-area {
+        order: 3;
       }
     }
 
@@ -717,10 +797,15 @@
     }
   </style>
 </head>
-<body>
+<body class="mobile-tab-train">
   <main class="app">
+    <nav class="mobile-tabs" id="mobileTabs" aria-label="Mobile app sections">
+      <button type="button" data-tab="train" class="active">Train</button>
+      <button type="button" data-tab="settings">Settings</button>
+      <button type="button" data-tab="history">History</button>
+    </nav>
     <section class="shell">
-      <div>
+      <div data-mobile-pane="train">
         <header class="hero">
           <div>
             <div class="brand-row">
@@ -730,6 +815,7 @@
                 <h1>Hellfire</h1>
               </div>
             </div>
+            <div class="mobile-setup-summary" id="mobileSetupSummary">Progression · Beginner · 16 kg</div>
           </div>
 
           <div class="hero-actions">
@@ -745,7 +831,7 @@
       </div>
 
       <aside class="panel session-panel">
-        <div class="control-grid">
+        <div class="control-grid" data-mobile-pane="settings">
           <div>
             <div class="field-label">Mode</div>
             <div class="segmented" id="modeControl">
@@ -793,7 +879,7 @@
 
         </div>
 
-        <div class="stats">
+        <div class="stats" data-mobile-pane="settings">
           <div class="stat">
             <div class="stat-label">Target</div>
             <div class="stat-value" id="targetStat">300</div>
@@ -808,9 +894,9 @@
           </div>
         </div>
 
-        <div class="dashboard" id="progressDashboard"></div>
+        <div class="dashboard" id="progressDashboard" data-mobile-pane="settings"></div>
 
-        <div class="panel" style="margin-top: 14px; box-shadow: none;">
+        <div class="panel" data-mobile-pane="train" style="margin-top: 14px; box-shadow: none;">
           <div class="session-toolbar">
             <div>
               <div class="field-label">Timer</div>
@@ -825,7 +911,7 @@
           </div>
         </div>
 
-        <section class="history">
+        <section class="history" data-mobile-pane="history">
           <div class="history-head">
             <div>
               <div class="field-label">History</div>
@@ -1036,7 +1122,8 @@
       startedAt: null,
       wakeLock: null,
       note: null,
-      completed: false
+      completed: false,
+      mobileTab: "train"
     };
 
     const $ = (selector) => document.querySelector(selector);
@@ -1498,11 +1585,30 @@
     }
 
     function render() {
+      renderMobileTab();
       renderControls();
       renderStats();
       renderWorkout();
       renderHistory();
       renderSession();
+    }
+
+    function renderMobileTab() {
+      document.body.classList.toggle("mobile-tab-train", state.mobileTab === "train");
+      document.body.classList.toggle("mobile-tab-settings", state.mobileTab === "settings");
+      document.body.classList.toggle("mobile-tab-history", state.mobileTab === "history");
+      $$("#mobileTabs button").forEach((button) => {
+        const active = button.dataset.tab === state.mobileTab;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    }
+
+    function renderSetupSummary() {
+      const mode = state.mode === "progression" ? "Progression" : "Normal";
+      const level = state.level[0].toUpperCase() + state.level.slice(1);
+      const target = state.mode === "normal" ? ` · ${state.targetSU} SU` : "";
+      $("#mobileSetupSummary").textContent = `${mode} · ${level} · ${state.bellKg} kg${target}`;
     }
 
     function renderControls() {
@@ -1512,6 +1618,7 @@
       $("#bellInput").value = state.bellKg;
       $("#normalControls").style.display = "block";
       $("#suControls").style.display = state.mode === "normal" ? "block" : "none";
+      renderSetupSummary();
 
     }
 
@@ -1786,8 +1893,17 @@
     }
 
     function bindEvents() {
+      $("#mobileTabs").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-tab]");
+        if (!button) return;
+        state.mobileTab = button.dataset.tab;
+        renderMobileTab();
+      });
+
       $("#generateBtn").addEventListener("click", () => {
         if (state.workout.length && !confirm("Overwrite the current unsaved session?")) return;
+        state.mobileTab = "train";
+        renderMobileTab();
         if (state.mode === "progression") openPreCheck();
         else generateWorkout();
       });
