@@ -960,6 +960,17 @@
     </div>
   </div>
 
+  <div class="modal" id="unbrokenModal" role="dialog" aria-modal="true" aria-labelledby="unbrokenTitle">
+    <div class="modal-card">
+      <h2 id="unbrokenTitle">Benchmark check</h2>
+      <p class="small">Did you complete every exercise block unbroken?</p>
+      <div class="button-row">
+        <button class="primary" data-unbroken="yes">Yes</button>
+        <button class="ghost" data-unbroken="no">No</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
     <div class="modal-card">
       <h2 id="resultTitle">Benchmark result</h2>
@@ -1067,7 +1078,7 @@
           { name: "Russian Twist", type: "Ballistic", stimulus: 0.7, unilateral: false, video: "https://www.youtube.com/watch?v=7XUglHKRyMo" },
           { name: "Half-Kneeling Windmill", type: "Grind", stimulus: 1.2, unilateral: true, video: "https://www.youtube.com/shorts/BfYW9PI5LS8" },
           { name: "Supine Get-up Sit-up", type: "Grind", stimulus: 1.5, unilateral: true, video: "https://www.youtube.com/watch?v=dv_nNf43Qck" },
-          { name: "Front Rack Hold / Carry", type: "Grind", stimulus: 0.5, unilateral: false, video: "https://www.youtube.com/watch?v=jumVlXfY1Pc" }
+          { name: "Front Rack March", type: "Grind", stimulus: 0.5, unilateral: true, repUnit: "marches", sideLabel: "side", video: "https://www.youtube.com/watch?v=jumVlXfY1Pc" }
         ],
         hybrid: [
           { name: "Clean & Squat", type: "Grind", stimulus: 2.5, unilateral: true, video: "https://www.youtube.com/watch?v=iSkQEUoC22Q" },
@@ -1092,7 +1103,12 @@
         ],
         pull: [
           { name: "Renegade Row", type: "Grind", stimulus: 1.3, unilateral: true, video: "https://www.youtube.com/watch?v=7l03NoMzGp4" },
-          { name: "Snatch", type: "Ballistic", stimulus: 1.6, unilateral: true, video: "https://www.youtube.com/watch?v=QsuJ6973OFc" }
+          { name: "Snatch", type: "Ballistic", stimulus: 1.6, unilateral: true, video: "https://www.youtube.com/watch?v=QsuJ6973OFc" },
+          { name: "Pull-up", type: "Grind", stimulus: 2.0, unilateral: false },
+          { name: "Chin-up", type: "Grind", stimulus: 2.0, unilateral: false },
+          { name: "Narrow Row", type: "Grind", stimulus: 1.4, unilateral: true },
+          { name: "Gorilla Row", type: "Grind", stimulus: 1.5, unilateral: true },
+          { name: "Wide Row", type: "Grind", stimulus: 1.4, unilateral: true }
         ],
         core: [
           { name: "Turkish Get-up", type: "Grind", stimulus: 3.5, unilateral: true, video: "https://www.youtube.com/watch?v=sgd8n917Zv0" },
@@ -1122,6 +1138,7 @@
       startedAt: null,
       wakeLock: null,
       note: null,
+      pendingRpe: null,
       completed: false,
       mobileTab: "train"
     };
@@ -1166,7 +1183,13 @@
     }
 
     function repsLabel(reps, unilateral) {
-      return unilateral ? `${reps} reps (${Math.ceil(reps / 2)} per arm)` : `${reps} reps`;
+      return repsLabelFor({ reps, unilateral });
+    }
+
+    function repsLabelFor(exercise) {
+      const unit = exercise.repUnit || "reps";
+      const sideLabel = exercise.sideLabel || "arm";
+      return exercise.unilateral ? `${exercise.reps / 2} ${unit} per ${sideLabel}` : `${exercise.reps} ${unit}`;
     }
 
     function pickRandom(items) {
@@ -1197,8 +1220,17 @@
     }
 
     function createWorkoutExercise(exercise, pattern, su) {
-      const reps = Math.max(1, Math.round(su / exercise.stimulus));
+      let reps = Math.max(1, Math.round(su / exercise.stimulus));
+      if (exercise.unilateral && reps % 2 !== 0) reps += 1;
       return { ...exercise, pattern, su, reps };
+    }
+
+    function databaseForLevel(level) {
+      if (level !== "advanced") return exerciseDatabase.beginner;
+      return Object.fromEntries(Object.keys(exerciseDatabase.beginner).map((pattern) => [
+        pattern,
+        [...exerciseDatabase.beginner[pattern], ...(exerciseDatabase.advanced[pattern] || [])]
+      ]));
     }
 
     function getOptions(patternList) {
@@ -1360,7 +1392,7 @@
         state.workout = testWorkout.map((exercise) => ({ ...exercise, su: null }));
         state.targetSU = resolvedTarget;
       } else {
-        const db = exerciseDatabase[state.level];
+        const db = databaseForLevel(state.level);
         const patterns = Object.keys(db);
         const patternCount = {};
         const exercises = [];
@@ -1417,6 +1449,8 @@
           pattern: exercise.pattern,
           su: exercise.su,
           unilateral: exercise.unilateral,
+          repUnit: exercise.repUnit || null,
+          sideLabel: exercise.sideLabel || null,
           video: exercise.video || null
         }))
       };
@@ -1431,7 +1465,7 @@
       }
     }
 
-    function completeSession(rpe = null) {
+    function completeSession(rpe = null, benchmarkUnbroken = true) {
       if (!state.workout.length) return;
       if (!canCompleteSession()) {
         toast("Start the timer before completing this session.");
@@ -1443,13 +1477,14 @@
       const previousTest = latestTestEntry();
       const previousSeconds = typeof previousTest?.timeSeconds === "number" ? previousTest.timeSeconds : null;
       const notes = state.note ? [state.note] : [];
-      const isBellUp = isTest && state.seconds > 0 && state.seconds <= BELL_UP_SECONDS;
+      const isBellUp = isTest && benchmarkUnbroken && state.seconds > 0 && state.seconds < BELL_UP_SECONDS;
       const isSlower = isTest && previousSeconds && state.seconds > previousSeconds;
       const bellBefore = state.bellKg;
       const bellAfter = isBellUp ? nextBell(bellBefore) : bellBefore;
 
       if (isTest && state.seconds > 0) {
-        notes.push(isBellUp ? `Bell Up. Test completed within 20 minutes. Next bell: ${bellAfter} kg.` : `Same bell. Test finished outside 20 minutes. Stay at ${bellBefore} kg.`);
+        notes.push(benchmarkUnbroken ? "Benchmark blocks completed unbroken." : "Benchmark saved, but not every exercise block was unbroken.");
+        notes.push(isBellUp ? `Bell Up. Test completed under 20 minutes and unbroken. Next bell: ${bellAfter} kg.` : `Same bell. Benchmark did not meet both Bell Up criteria. Stay at ${bellBefore} kg.`);
         if (isSlower) {
           notes.push(`Check-in. This test was ${formatTime(state.seconds - previousSeconds)} slower than the previous test.`);
         }
@@ -1460,6 +1495,7 @@
       const entry = buildHistoryEntry(isTest ? "test" : "workout", rpe);
       entry.bellBefore = bellBefore;
       entry.bellAfter = bellAfter;
+      if (isTest) entry.benchmarkUnbroken = benchmarkUnbroken;
       saveHistoryEntry(entry);
       if (isBellUp && bellAfter !== bellBefore) {
         state.bellKg = bellAfter;
@@ -1478,6 +1514,7 @@
       state.seconds = 0;
       state.startedAt = null;
       state.note = null;
+      state.pendingRpe = null;
       state.sessionType = "workout";
       state.completed = false;
       localStorage.removeItem(LS.ACTIVE);
@@ -1566,6 +1603,10 @@
 
     function closeRpe() {
       $("#rpeModal").classList.remove("show");
+    }
+
+    function closeUnbroken() {
+      $("#unbrokenModal").classList.remove("show");
     }
 
     function showResult(entry, flags) {
@@ -1686,7 +1727,7 @@
                 ${exercise.video ? `<a class="chip" href="${exercise.video}" target="_blank" rel="noopener noreferrer">Demo</a>` : ""}
               </div>
             </div>
-            <div class="reps">${repsLabel(exercise.reps, exercise.unilateral)}</div>
+            <div class="reps">${repsLabelFor(exercise)}</div>
           </div>
           <div class="cue">${escapeHtml(cueFor(exercise))}</div>
         </article>
@@ -1724,7 +1765,7 @@
           <div class="history-detail">
             ${entry.note ? `<p>${escapeHtml(entry.note)}</p>` : ""}
             ${entry.exercises?.length ? `<ul>${entry.exercises.map((exercise) => `
-              <li>${escapeHtml(exercise.name)} - ${repsLabel(exercise.reps, exercise.unilateral)}${exercise.su ? ` (${exercise.su} SU)` : ""}</li>
+              <li>${escapeHtml(exercise.name)} - ${repsLabelFor(exercise)}${exercise.su ? ` (${exercise.su} SU)` : ""}</li>
             `).join("")}</ul>` : ""}
           </div>
         </article>
@@ -1963,7 +2004,21 @@
         if (!button) return;
         const rpe = button.dataset.rpe;
         closeRpe();
+        if (state.sessionType === "test") {
+          state.pendingRpe = rpe;
+          $("#unbrokenModal").classList.add("show");
+          return;
+        }
         completeSession(rpe);
+      });
+      $("#unbrokenModal").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-unbroken]");
+        if (!button) return;
+        const benchmarkUnbroken = button.dataset.unbroken === "yes";
+        const rpe = state.pendingRpe;
+        state.pendingRpe = null;
+        closeUnbroken();
+        completeSession(rpe, benchmarkUnbroken);
       });
       $("#closeResultBtn").addEventListener("click", () => $("#resultModal").classList.remove("show"));
       $("#closeInstallBtn").addEventListener("click", () => $("#installModal").classList.remove("show"));
