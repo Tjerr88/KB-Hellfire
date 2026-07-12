@@ -495,6 +495,26 @@
       display: block;
     }
 
+    .demo-panel {
+      margin-top: 12px;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 10px;
+    }
+
+    .demo-panel summary {
+      width: max-content;
+      max-width: 100%;
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      color: #f7dcc9;
+      background: rgba(255, 255, 255, 0.055);
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      cursor: pointer;
+      list-style-position: inside;
+    }
+
     .intent {
       padding: 14px 16px;
       border: 1px solid var(--line);
@@ -869,6 +889,8 @@
             Pull-up / Chin-up
           </label>
 
+          <button class="quiet" id="resetShuffleBtn" type="button">Reset shuffle</button>
+
           <div id="suControls">
             <div class="field-label">Stimulus target</div>
             <div class="segmented three" id="suControl">
@@ -1025,6 +1047,31 @@
     </div>
   </div>
 
+  <div class="modal" id="zone2Modal" role="dialog" aria-modal="true" aria-labelledby="zone2Title">
+    <div class="modal-card">
+      <h2 id="zone2Title">Zone 2</h2>
+      <p class="small">Pick the engine work for today.</p>
+      <div class="field-label">Activity</div>
+      <div class="segmented three" id="zone2ModalityControl">
+        <button data-zone-modality="Run">Run</button>
+        <button data-zone-modality="Bike">Bike</button>
+        <button data-zone-modality="Cross-trainer">Cross-trainer</button>
+      </div>
+      <div class="field-label" style="margin-top: 14px;">Duration</div>
+      <div class="segmented four" id="zone2DurationControl">
+        <button data-zone-minutes="30">30 min</button>
+        <button data-zone-minutes="35">35 min</button>
+        <button data-zone-minutes="40">40 min</button>
+        <button data-zone-minutes="45">45 min</button>
+      </div>
+      <textarea id="zone2NoteInput" spellcheck="false" placeholder="Optional note"></textarea>
+      <div class="button-row">
+        <button class="primary" id="startZone2Btn">Start Zone 2</button>
+        <button class="ghost" id="cancelZone2Btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
@@ -1168,6 +1215,8 @@
       pendingRpe: null,
       includeBodyweightPulls: false,
       appInstalled: false,
+      zone2Modality: "Run",
+      zone2Minutes: 40,
       completed: false,
       mobileTab: "train"
     };
@@ -1523,23 +1572,36 @@
       toast(shouldRunTest ? "Benchmark ready. Start the test session to reveal the work." : note?.includes("held") ? note : "Workout loaded. Complete it to save it to history.");
     }
 
-    function generateZone2Session() {
+    function openZone2Modal() {
       if (state.workout.length && !confirm("Overwrite the current unsaved session?")) return;
+      $("#zone2NoteInput").value = "";
+      $$("#zone2ModalityControl button").forEach((button) => button.classList.toggle("active", button.dataset.zoneModality === state.zone2Modality));
+      $$("#zone2DurationControl button").forEach((button) => button.classList.toggle("active", Number(button.dataset.zoneMinutes) === state.zone2Minutes));
+      $("#zone2Modal").classList.add("show");
+    }
+
+    function closeZone2() {
+      $("#zone2Modal").classList.remove("show");
+    }
+
+    function generateZone2Session(modality = state.zone2Modality, minutes = state.zone2Minutes, note = "") {
       stopTimer(false);
-      const minutes = Math.floor(Math.random() * 16) + 30;
+      const cleanNote = note.trim();
       state.seconds = 0;
-      state.note = "Zone 2 session. Choose running, cross-trainer, or cycling.";
+      state.note = `Zone 2 session. ${modality}, ${minutes} minutes.${cleanNote ? ` ${cleanNote}` : ""}`;
       state.completed = false;
       state.sessionType = "zone2";
       state.targetSU = 0;
       state.workout = [{
-        name: "Zone 2 Cardio",
+        name: `Zone 2 ${modality}`,
         type: "Cardio",
         pattern: "cardio",
         reps: minutes,
         repUnit: "min",
         unilateral: false,
         su: 0,
+        zone2Modality: modality,
+        zone2Minutes: minutes,
         video: null
       }];
       persistActive();
@@ -1570,6 +1632,8 @@
           unilateral: exercise.unilateral,
           repUnit: exercise.repUnit || null,
           sideLabel: exercise.sideLabel || null,
+          zone2Modality: exercise.zone2Modality || null,
+          zone2Minutes: exercise.zone2Minutes || null,
           video: exercise.video || null
         }))
       };
@@ -1808,12 +1872,24 @@
           <div class="dash-value">${state.bellKg} kg</div>
         </div>
         <div class="dash-item">
+          <div class="stat-label">Benchmark bell</div>
+          <div class="dash-value">${latestTest?.bellAfter || state.bellKg} kg</div>
+        </div>
+        <div class="dash-item">
           <div class="stat-label">Next benchmark</div>
           <div class="dash-value">${state.mode === "progression" ? nextDays === 0 ? "Due now" : `${nextDays} days` : "Progression off"}</div>
         </div>
         <div class="dash-item">
           <div class="stat-label">Last test</div>
           <div class="dash-value">${latestTest?.time || "None"}</div>
+        </div>
+        <div class="dash-item">
+          <div class="stat-label">Last unbroken</div>
+          <div class="dash-value">${latestTest ? typeof latestTest.benchmarkUnbroken === "boolean" ? latestTest.benchmarkUnbroken ? "Yes" : "No" : "Unknown" : "None"}</div>
+        </div>
+        <div class="dash-item">
+          <div class="stat-label">Bell history</div>
+          <div class="dash-value">${latestTest?.bellBefore ? `${latestTest.bellBefore} -> ${latestTest.bellAfter} kg` : "None"}</div>
         </div>
         <div class="dash-item">
           <div class="stat-label">Best test</div>
@@ -1854,7 +1930,7 @@
             <div class="reps">${repsLabelFor(exercise)}</div>
           </div>
           <div class="cue">${escapeHtml(cueFor(exercise))}</div>
-          ${youtubeEmbedUrl(exercise.video) ? `<div class="video-frame"><iframe src="${escapeHtml(youtubeEmbedUrl(exercise.video))}" title="${escapeHtml(`${exercise.name} demo`)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>` : ""}
+          ${youtubeEmbedUrl(exercise.video) ? `<details class="demo-panel"><summary>Demo</summary><div class="video-frame"><iframe src="${escapeHtml(youtubeEmbedUrl(exercise.video))}" title="${escapeHtml(`${exercise.name} demo`)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div></details>` : ""}
         </article>
       `).join("");
     }
@@ -1903,7 +1979,8 @@
     }
 
     function historyMeta(entry) {
-      const load = entry.type === "test" ? "Benchmark" : entry.type === "zone2" ? "Zone 2" : `${entry.actualSU || entry.targetSU || 0} SU`;
+      const zone2Exercise = entry.exercises?.[0];
+      const load = entry.type === "test" ? "Benchmark" : entry.type === "zone2" ? `${zone2Exercise?.name || "Zone 2"} · ${zone2Exercise?.reps || 0} min` : `${entry.actualSU || entry.targetSU || 0} SU`;
       const rpe = entry.rpe ? ` · ${entry.rpe}` : "";
       return `${entry.date}${entry.time ? ` · ${entry.time}` : ""} · ${entry.bellKg || state.bellKg} kg · ${load}${rpe}`;
     }
@@ -2114,6 +2191,37 @@
         saveSettings();
       });
 
+      $("#resetShuffleBtn").addEventListener("click", () => {
+        if (!confirm("Reset shuffle memory? Future sessions will start fresh.")) return;
+        state.shuffleBags = {};
+        saveShuffleBags();
+        toast("Shuffle memory reset.");
+      });
+
+      $("#zone2ModalityControl").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-zone-modality]");
+        if (!button) return;
+        state.zone2Modality = button.dataset.zoneModality;
+        $$("#zone2ModalityControl button").forEach((item) => item.classList.toggle("active", item === button));
+      });
+
+      $("#zone2DurationControl").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-zone-minutes]");
+        if (!button) return;
+        state.zone2Minutes = Number(button.dataset.zoneMinutes);
+        $$("#zone2DurationControl button").forEach((item) => item.classList.toggle("active", item === button));
+      });
+
+      $("#startZone2Btn").addEventListener("click", () => {
+        const note = $("#zone2NoteInput").value;
+        closeZone2();
+        state.mobileTab = "train";
+        renderMobileTab();
+        generateZone2Session(state.zone2Modality, state.zone2Minutes, note);
+      });
+
+      $("#cancelZone2Btn").addEventListener("click", closeZone2);
+
       const updateBellFromInput = () => {
         const nextBellKg = normalizeBellWeight($("#bellInput").value, state.bellKg);
         state.bellKg = nextBellKg;
@@ -2224,7 +2332,7 @@
       $("#installBtn").addEventListener("click", async () => {
         if (state.appInstalled || isStandaloneApp()) {
           state.appInstalled = true;
-          generateZone2Session();
+          openZone2Modal();
           return;
         }
         if (!installPrompt) {
