@@ -479,6 +479,22 @@
       padding-top: 10px;
     }
 
+    .video-frame {
+      margin-top: 12px;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: #050403;
+    }
+
+    .video-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
     .intent {
       padding: 14px 16px;
       border: 1px solid var(--line);
@@ -848,6 +864,11 @@
             </div>
           </div>
 
+          <label class="check">
+            <input id="bodyweightPullToggle" type="checkbox" />
+            Pull-up / Chin-up
+          </label>
+
           <div id="suControls">
             <div class="field-label">Stimulus target</div>
             <div class="segmented three" id="suControl">
@@ -1026,7 +1047,8 @@
       push: "#ff6b5d",
       pull: "#6fe08e",
       core: "#ffd15f",
-      hybrid: "#ff9a35"
+      hybrid: "#ff9a35",
+      cardio: "#55d6d0"
     };
 
     const cueByPattern = {
@@ -1035,14 +1057,15 @@
       push: "Brace first, punch through clean, keep the shoulder packed.",
       pull: "Lead with the elbow, keep the neck quiet, finish crisp.",
       core: "Move slow enough to control the ribs and pelvis.",
-      hybrid: "Do not rush the transitions. Clean reps beat dirty speed."
+      hybrid: "Do not rush the transitions. Clean reps beat dirty speed.",
+      cardio: "Run, ride, or use the cross-trainer at a pace you can hold for the full block."
     };
 
     const testWorkout = [
       { name: "Two-arm Swing", reps: 30, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" },
       { name: "Deadlift", reps: 25, pattern: "hinge", unilateral: false, video: "https://www.youtube.com/watch?v=l6gDwf3xC6s" },
       { name: "Snatch", reps: 50, pattern: "pull", unilateral: true, video: "https://www.youtube.com/watch?v=QsuJ6973OFc" },
-      { name: "Goblet Squat", reps: 35, pattern: "squat", unilateral: false, video: "https://www.youtube.com/shorts/dBnNCOtuGNQ" },
+      { name: "Goblet Squat", reps: 35, pattern: "squat", unilateral: false, video: "https://youtu.be/MWHIs0zxkCU" },
       { name: "One-arm Swing", reps: 60, pattern: "hinge", unilateral: true, video: "https://www.youtube.com/watch?v=UYBKrK1y6ww" },
       { name: "Russian Twist", reps: 40, pattern: "core", unilateral: false, video: "https://www.youtube.com/watch?v=7XUglHKRyMo" },
       { name: "Clean & Press", reps: 30, pattern: "hybrid", unilateral: true, video: "https://www.youtube.com/watch?v=km3f8_rpDdg" },
@@ -1052,39 +1075,41 @@
     const exerciseDatabase = {
       beginner: {
         squat: [
-          { name: "Goblet Squat", type: "Grind", stimulus: 1.3, unilateral: false, video: "https://www.youtube.com/shorts/dBnNCOtuGNQ" },
+          { name: "Goblet Squat", type: "Grind", stimulus: 1.3, unilateral: false, video: "https://youtu.be/MWHIs0zxkCU" },
           { name: "Single Side Front Squat", type: "Grind", stimulus: 1.3, unilateral: true, video: "https://www.youtube.com/watch?v=SlPwjU6I9gk" },
           { name: "Jump Squat", type: "Ballistic", stimulus: 1.8, unilateral: false, video: "https://www.youtube.com/watch?v=v3prQwHewL0" }
         ],
         hinge: [
           { name: "Deadlift (sumo/standard)", type: "Grind", stimulus: 0.8, unilateral: false, video: "https://www.youtube.com/watch?v=xFU5zTZgiyE" },
-          { name: "B-stance Deadlift", type: "Grind", stimulus: 1.1, unilateral: true, video: "https://www.youtube.com/shorts/8-mW9b4WbRo" },
+          { name: "B-stance Deadlift", type: "Grind", stimulus: 1.1, unilateral: true, video: "https://youtu.be/1RItcdh8nOk" },
           { name: "Two-arm Swing", type: "Ballistic", stimulus: 1.1, unilateral: false, video: "https://www.youtube.com/watch?v=1cVT3ee9mgU" },
-          { name: "Glute Bridge", type: "Grind", stimulus: 1.0, unilateral: false, video: "https://www.youtube.com/shorts/ULl7xM2yWgo" }
+          { name: "Glute Bridge", type: "Grind", stimulus: 1.0, unilateral: false, video: "https://youtu.be/mnzEGjv0IQQ" }
         ],
         push: [
-          { name: "Floor Press", type: "Grind", stimulus: 1.2, unilateral: true, video: "https://www.youtube.com/shorts/1QMCUbRkQFA" },
-          { name: "Half-Kneeling Press", type: "Grind", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/shorts/n0peUzKZ-PU" },
+          { name: "Floor Press", type: "Grind", stimulus: 1.2, unilateral: true, video: "https://youtu.be/DYlJ6sZrVkY" },
+          { name: "Half-Kneeling Press", type: "Grind", stimulus: 1.4, unilateral: true, video: "https://youtu.be/fxSroF2cY_g" },
           { name: "Push Press", type: "Ballistic", stimulus: 1.3, unilateral: true, video: "https://www.youtube.com/watch?v=CCqru4q9RK0" },
-          { name: "Military Press", type: "Grind", stimulus: 1.6, unilateral: true, video: "https://www.youtube.com/shorts/oYubnI4aXD8" }
+          { name: "Military Press", type: "Grind", stimulus: 1.6, unilateral: true, video: "https://youtu.be/X77O04oL1ek" }
         ],
         pull: [
-          { name: "Bent-over Row", type: "Grind", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/shorts/pvRXtyBkO-s" },
-          { name: "Pull-over", type: "Grind", stimulus: 1.2, unilateral: false, video: "https://www.youtube.com/shorts/HEV0UZIlEag" },
-          { name: "Clean", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/shorts/xQb9Tc3iQpI" },
+          { name: "Bent-over Row", type: "Grind", stimulus: 1.4, unilateral: true, video: "https://youtu.be/9Q9gwoXHn1o" },
+          { name: "Pull-over", type: "Grind", stimulus: 1.2, unilateral: false, video: "https://youtu.be/49AFHKEB-I4" },
+          { name: "Clean", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://youtu.be/lYh7Kf_lEMY" },
           { name: "One-arm High Pull", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/watch?v=mP1BHxBeAEM" }
         ],
         core: [
           { name: "Russian Twist", type: "Ballistic", stimulus: 0.7, unilateral: false, video: "https://www.youtube.com/watch?v=7XUglHKRyMo" },
-          { name: "Half-Kneeling Windmill", type: "Grind", stimulus: 1.2, unilateral: true, video: "https://www.youtube.com/shorts/BfYW9PI5LS8" },
+          { name: "Half-Kneeling Windmill", type: "Grind", stimulus: 1.2, unilateral: true, video: "https://youtu.be/wjYNzITBDqg" },
           { name: "Supine Get-up Sit-up", type: "Grind", stimulus: 1.5, unilateral: true, video: "https://www.youtube.com/watch?v=dv_nNf43Qck" },
-          { name: "Front Rack March", type: "Grind", stimulus: 0.5, unilateral: true, repUnit: "marches", sideLabel: "side", video: "https://www.youtube.com/watch?v=jumVlXfY1Pc" }
+          { name: "Front Rack Carry", type: "Grind", stimulus: 0.5, unilateral: true, repUnit: "meters", sideLabel: "side", video: "https://www.youtube.com/watch?v=jumVlXfY1Pc" },
+          { name: "Side Bend", type: "Grind", stimulus: 1.0, unilateral: true, sideLabel: "side", video: "https://youtu.be/rLy3w99jtdQ" },
+          { name: "Wood Chop", type: "Grind", stimulus: 1.1, unilateral: true, sideLabel: "side", video: "https://youtu.be/FTrS4VM4QIM" }
         ],
         hybrid: [
           { name: "Clean & Squat", type: "Grind", stimulus: 2.5, unilateral: true, video: "https://www.youtube.com/watch?v=iSkQEUoC22Q" },
           { name: "Squat & Press", type: "Ballistic", stimulus: 2.0, unilateral: false, video: "https://www.youtube.com/watch?v=7E0o5Hv8TMk" },
           { name: "Clean & Press", type: "Grind", stimulus: 2.0, unilateral: true, video: "https://www.youtube.com/watch?v=km3f8_rpDdg" },
-          { name: "Clean & Push Press", type: "Ballistic", stimulus: 2.0, unilateral: true, video: "https://www.youtube.com/shorts/HWHJW0ivos8" }
+          { name: "Clean & Push Press", type: "Ballistic", stimulus: 2.0, unilateral: true, video: "https://youtu.be/s16IX5IJDt0" }
         ]
       },
       advanced: {
@@ -1095,27 +1120,27 @@
         ],
         hinge: [
           { name: "One-arm Swing", type: "Ballistic", stimulus: 1.2, unilateral: true, video: "https://www.youtube.com/watch?v=UYBKrK1y6ww" },
-          { name: "Hand-to-Hand Swing", type: "Ballistic", stimulus: 1.4, unilateral: false, video: "https://www.youtube.com/shorts/lQqR4wzdMak" }
+          { name: "Hand-to-Hand Swing", type: "Ballistic", stimulus: 1.4, unilateral: false, video: "https://youtu.be/KKumMhxKapw" },
+          { name: "Side Swing", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://youtu.be/yQUYjqDvvfM" }
         ],
         push: [
           { name: "Top-Down Press", type: "Grind", stimulus: 2.2, unilateral: true, video: "https://www.youtube.com/watch?v=a9zEt8d-DYU" },
-          { name: "Push Jerk / VPP", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://www.youtube.com/shorts/5lSuYCma88w" }
+          { name: "Jerk", type: "Ballistic", stimulus: 1.4, unilateral: true, video: "https://youtu.be/JryhaLv9V2k" }
         ],
         pull: [
           { name: "Renegade Row", type: "Grind", stimulus: 1.3, unilateral: true, video: "https://www.youtube.com/watch?v=7l03NoMzGp4" },
           { name: "Snatch", type: "Ballistic", stimulus: 1.6, unilateral: true, video: "https://www.youtube.com/watch?v=QsuJ6973OFc" },
-          { name: "Pull-up", type: "Grind", stimulus: 2.0, unilateral: false },
-          { name: "Chin-up", type: "Grind", stimulus: 2.0, unilateral: false },
-          { name: "Narrow Row", type: "Grind", stimulus: 1.4, unilateral: true },
-          { name: "Gorilla Row", type: "Grind", stimulus: 1.5, unilateral: true },
-          { name: "Wide Row", type: "Grind", stimulus: 1.4, unilateral: true }
+          { name: "Pull-up", type: "Grind", stimulus: 2.0, unilateral: false, requiresBodyweightPulls: true, video: "https://youtu.be/-24hIVzm8qo" },
+          { name: "Chin-up", type: "Grind", stimulus: 2.0, unilateral: false, requiresBodyweightPulls: true, video: "https://youtu.be/z2guGmOv0SE" },
+          { name: "Narrow Row", type: "Ballistic", stimulus: 1.2, unilateral: true, video: "https://youtu.be/bogxZHCPDEo" },
+          { name: "Wide Row", type: "Grind", stimulus: 1.4, unilateral: true, video: "https://youtu.be/cGYIp5QDJKU" }
         ],
         core: [
           { name: "Turkish Get-up", type: "Grind", stimulus: 3.5, unilateral: true, video: "https://www.youtube.com/watch?v=sgd8n917Zv0" },
-          { name: "Windmill", type: "Grind", stimulus: 1.8, unilateral: true, video: "https://www.youtube.com/shorts/EZWHnzAjctU" }
+          { name: "Windmill", type: "Grind", stimulus: 1.8, unilateral: true, video: "https://youtu.be/ITSmgn_BQgY" }
         ],
         hybrid: [
-          { name: "Snatch & Press", type: "Grind", stimulus: 2.0, unilateral: true, video: "https://www.youtube.com/shorts/icAh8ZEjNx8" },
+          { name: "Snatch & Press", type: "Grind", stimulus: 2.0, unilateral: true, video: "https://youtu.be/u6PtGO58mRA" },
           { name: "Clean -> Press -> Squat", type: "Grind", stimulus: 2.5, unilateral: true, video: "https://www.youtube.com/watch?v=Fsd4VcFO094" }
         ]
       }
@@ -1139,6 +1164,8 @@
       wakeLock: null,
       note: null,
       pendingRpe: null,
+      includeBodyweightPulls: false,
+      appInstalled: false,
       completed: false,
       mobileTab: "train"
     };
@@ -1172,7 +1199,8 @@
         suMode: state.suMode,
         targetSU: state.targetSU,
         autoIndex: state.autoIndex,
-        bellKg: state.bellKg
+        bellKg: state.bellKg,
+        includeBodyweightPulls: state.includeBodyweightPulls
       });
     }
 
@@ -1190,6 +1218,19 @@
       const unit = exercise.repUnit || "reps";
       const sideLabel = exercise.sideLabel || "arm";
       return exercise.unilateral ? `${exercise.reps / 2} ${unit} per ${sideLabel}` : `${exercise.reps} ${unit}`;
+    }
+
+    function youtubeEmbedUrl(url) {
+      if (!url) return null;
+      try {
+        const parsed = new URL(url);
+        let id = parsed.searchParams.get("v");
+        if (!id && parsed.pathname.includes("/shorts/")) id = parsed.pathname.split("/shorts/")[1]?.split(/[/?#]/)[0];
+        if (!id && parsed.hostname.includes("youtu.be")) id = parsed.pathname.slice(1).split(/[/?#]/)[0];
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+      } catch {
+        return null;
+      }
     }
 
     function pickRandom(items) {
@@ -1230,6 +1271,7 @@
       return Object.fromEntries(Object.keys(exerciseDatabase.beginner).map((pattern) => [
         pattern,
         [...exerciseDatabase.beginner[pattern], ...(exerciseDatabase.advanced[pattern] || [])]
+          .filter((exercise) => state.includeBodyweightPulls || !exercise.requiresBodyweightPulls)
       ]));
     }
 
@@ -1267,6 +1309,7 @@
     }
 
     function currentIntent() {
+      if (state.sessionType === "zone2") return "Hold a steady Zone 2 pace. Easy enough to sustain, honest enough to build the engine.";
       if (state.sessionType === "test") return "Complete the following session as fast as possible, but quality above quantity.";
       if (state.mode === "progression") {
         if (state.targetSU >= 500) return "Heavy engine. Big output, clean breathing, controlled aggression.";
@@ -1278,6 +1321,10 @@
 
     function cueFor(exercise) {
       return cueByPattern[exercise.pattern] || "Quality first. Speed only counts when the rep stays clean.";
+    }
+
+    function isStandaloneApp() {
+      return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
     }
 
     function signal(kind = "soft") {
@@ -1428,6 +1475,30 @@
       toast(shouldRunTest ? "Benchmark ready. Start the test session to reveal the work." : note?.includes("held") ? note : "Workout loaded. Complete it to save it to history.");
     }
 
+    function generateZone2Session() {
+      if (state.workout.length && !confirm("Overwrite the current unsaved session?")) return;
+      stopTimer(false);
+      const minutes = Math.floor(Math.random() * 16) + 30;
+      state.seconds = 0;
+      state.note = "Zone 2 session. Choose running, cross-trainer, or cycling.";
+      state.completed = false;
+      state.sessionType = "zone2";
+      state.targetSU = 0;
+      state.workout = [{
+        name: "Zone 2 Cardio",
+        type: "Cardio",
+        pattern: "cardio",
+        reps: minutes,
+        repUnit: "min",
+        unilateral: false,
+        su: 0,
+        video: null
+      }];
+      persistActive();
+      render();
+      toast(`Zone 2 loaded: ${minutes} minutes.`);
+    }
+
     function buildHistoryEntry(type = state.sessionType, rpe = null) {
       const finalSeconds = elapsedSeconds();
       return {
@@ -1492,7 +1563,7 @@
       if (rpe) notes.push(`RPE: ${rpe}.`);
 
       state.note = notes.join(" ");
-      const entry = buildHistoryEntry(isTest ? "test" : "workout", rpe);
+      const entry = buildHistoryEntry(isTest ? "test" : state.sessionType === "zone2" ? "zone2" : "workout", rpe);
       entry.bellBefore = bellBefore;
       entry.bellAfter = bellAfter;
       if (isTest) entry.benchmarkUnbroken = benchmarkUnbroken;
@@ -1628,6 +1699,7 @@
     function render() {
       renderMobileTab();
       renderControls();
+      renderHeroActions();
       renderStats();
       renderWorkout();
       renderHistory();
@@ -1656,11 +1728,16 @@
       $$("#modeControl button").forEach((button) => button.classList.toggle("active", button.dataset.mode === state.mode));
       $$("#levelControl button").forEach((button) => button.classList.toggle("active", button.dataset.level === state.level));
       $$("#suControl button").forEach((button) => button.classList.toggle("active", Number(button.dataset.su) === state.targetSU));
+      $("#bodyweightPullToggle").checked = state.includeBodyweightPulls;
       $("#bellInput").value = state.bellKg;
       $("#normalControls").style.display = "block";
       $("#suControls").style.display = state.mode === "normal" ? "block" : "none";
       renderSetupSummary();
 
+    }
+
+    function renderHeroActions() {
+      $("#installBtn").textContent = state.appInstalled ? "Zone 2" : "Install App";
     }
 
     function renderStats() {
@@ -1724,12 +1801,12 @@
               <div class="chips">
                 <span class="chip" style="border-color:${patternColors[exercise.pattern] || "rgba(255,255,255,.12)"}">${escapeHtml(exercise.pattern)}</span>
                 ${exercise.type ? `<span class="chip">${escapeHtml(exercise.type)}</span>` : ""}
-                ${exercise.video ? `<a class="chip" href="${exercise.video}" target="_blank" rel="noopener noreferrer">Demo</a>` : ""}
               </div>
             </div>
             <div class="reps">${repsLabelFor(exercise)}</div>
           </div>
           <div class="cue">${escapeHtml(cueFor(exercise))}</div>
+          ${youtubeEmbedUrl(exercise.video) ? `<div class="video-frame"><iframe src="${escapeHtml(youtubeEmbedUrl(exercise.video))}" title="${escapeHtml(`${exercise.name} demo`)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>` : ""}
         </article>
       `).join("");
     }
@@ -1738,7 +1815,7 @@
       const displaySeconds = elapsedSeconds();
       $("#timerDisplay").textContent = formatTime(displaySeconds);
       $("#sessionState").textContent = state.workout.length
-        ? state.timerRunning ? "Running" : state.sessionType === "test" && !displaySeconds ? "Benchmark ready" : state.sessionType === "test" ? "Benchmark paused" : "Session loaded"
+        ? state.timerRunning ? "Running" : state.sessionType === "zone2" ? "Zone 2 loaded" : state.sessionType === "test" && !displaySeconds ? "Benchmark ready" : state.sessionType === "test" ? "Benchmark paused" : "Session loaded"
         : "No active session";
       $("#timerBtn").textContent = state.timerRunning ? "Stop Timer" : state.sessionType === "test" && !displaySeconds ? "Start Test Session" : displaySeconds ? "Resume Timer" : "Start Timer";
       $("#timerBtn").disabled = !state.workout.length;
@@ -1757,7 +1834,7 @@
         <article class="history-item" data-history-index="${index}">
           <div class="history-summary">
             <div>
-              <div class="history-title">${escapeHtml(entry.type === "recovery" ? "Recovery Day" : entry.type === "test" ? "Test Workout" : `${entry.level} workout`)}</div>
+              <div class="history-title">${escapeHtml(entry.type === "recovery" ? "Recovery Day" : entry.type === "zone2" ? "Zone 2" : entry.type === "test" ? "Test Workout" : `${entry.level} workout`)}</div>
               <div class="small">${escapeHtml(entry.date)}${entry.time ? ` · ${escapeHtml(entry.time)}` : ""} · ${entry.actualSU || entry.targetSU || 0} SU</div>
             </div>
             <button class="quiet" data-toggle-history="${index}">Open</button>
@@ -1778,7 +1855,7 @@
     }
 
     function historyMeta(entry) {
-      const load = entry.type === "test" ? "Benchmark" : `${entry.actualSU || entry.targetSU || 0} SU`;
+      const load = entry.type === "test" ? "Benchmark" : entry.type === "zone2" ? "Zone 2" : `${entry.actualSU || entry.targetSU || 0} SU`;
       const rpe = entry.rpe ? ` · ${entry.rpe}` : "";
       return `${entry.date}${entry.time ? ` · ${entry.time}` : ""} · ${entry.bellKg || state.bellKg} kg · ${load}${rpe}`;
     }
@@ -1866,6 +1943,7 @@
         state.targetSU = settings.targetSU || state.targetSU;
         state.autoIndex = Number.isInteger(settings.autoIndex) ? settings.autoIndex : state.autoIndex;
         state.bellKg = normalizeBellWeight(settings.bellKg, state.bellKg);
+        state.includeBodyweightPulls = Boolean(settings.includeBodyweightPulls);
       }
       const active = safeRead(LS.ACTIVE, null);
       if (active?.workout?.length) {
@@ -1885,6 +1963,7 @@
           state.seconds = Math.floor((Date.now() - state.startedAt) / 1000);
         }
       }
+      state.appInstalled = isStandaloneApp();
     }
 
     function syncTimerFromClock() {
@@ -1977,6 +2056,11 @@
         saveSettings();
         renderControls();
         renderStats();
+      });
+
+      $("#bodyweightPullToggle").addEventListener("change", (event) => {
+        state.includeBodyweightPulls = event.target.checked;
+        saveSettings();
       });
 
       const updateBellFromInput = () => {
@@ -2076,9 +2160,22 @@
       window.addEventListener("beforeinstallprompt", (event) => {
         event.preventDefault();
         installPrompt = event;
+        state.appInstalled = isStandaloneApp();
+        renderHeroActions();
+      });
+
+      window.addEventListener("appinstalled", () => {
+        state.appInstalled = true;
+        installPrompt = null;
+        renderHeroActions();
       });
 
       $("#installBtn").addEventListener("click", async () => {
+        if (state.appInstalled || isStandaloneApp()) {
+          state.appInstalled = true;
+          generateZone2Session();
+          return;
+        }
         if (!installPrompt) {
           $("#installModal").classList.add("show");
           return;
@@ -2086,6 +2183,8 @@
         installPrompt.prompt();
         await installPrompt.userChoice;
         installPrompt = null;
+        state.appInstalled = isStandaloneApp();
+        renderHeroActions();
       });
     }
 
